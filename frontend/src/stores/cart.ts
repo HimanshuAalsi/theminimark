@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
+import type { PersonaliseType } from '@/data/personalise'
 import type { Product } from '@/types/product'
 
 const STORAGE_KEY = 'theminimark_cart'
@@ -10,6 +11,22 @@ export interface CartLine {
   unitPrice: number
   quantity: number
   imageUrl?: string
+  /** Custom personalise studio item */
+  customType?: PersonaliseType
+  customPhotoUrl?: string
+  customZoom?: number
+  customPosX?: number
+  customPosY?: number
+}
+
+export interface CustomCartPayload {
+  type: PersonaliseType
+  name: string
+  unitPrice: number
+  photoUrl: string
+  zoom?: number
+  posX?: number
+  posY?: number
 }
 
 function loadFromStorage(): CartLine[] {
@@ -64,6 +81,23 @@ export const useCartStore = defineStore('cart', () => {
     })
   }
 
+  function addCustomProduct(payload: CustomCartPayload, quantity = 1) {
+    const q = Math.max(1, quantity)
+    const productId = `custom-${payload.type}-${Date.now()}`
+    lines.value.push({
+      productId,
+      name: payload.name,
+      unitPrice: payload.unitPrice,
+      quantity: q,
+      imageUrl: payload.photoUrl,
+      customType: payload.type,
+      customPhotoUrl: payload.photoUrl,
+      customZoom: payload.zoom ?? 1,
+      customPosX: payload.posX ?? 50,
+      customPosY: payload.posY ?? 50,
+    })
+  }
+
   function setQuantity(productId: Product['id'], quantity: number) {
     const line = lines.value.find((l) => l.productId === productId)
     if (!line) return
@@ -87,6 +121,7 @@ export const useCartStore = defineStore('cart', () => {
     totalQuantity,
     subtotal,
     addProduct,
+    addCustomProduct,
     setQuantity,
     removeLine,
     clear,

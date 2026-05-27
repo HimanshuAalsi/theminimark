@@ -1,0 +1,97 @@
+/* Motion + route transitions. Respects reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@keyframes tm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tm-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes tm-pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tm-animate-in {
+    animation: tm-fade-up 0.55s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
+  .tm-hover-lift {
+    transition:
+      transform var(--duration, 0.22s) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+      box-shadow var(--duration, 0.22s) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .tm-hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-float);
+  }
+
+  .tm-press:active {
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-animate-in {
+    animation: none;
+  }
+
+  .tm-hover-lift:hover {
+    transform: none;
+  }
+}
+
+/* Vue RouterView <Transition name="page"> */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter-from {
+    transform: translateY(10px);
+  }
+
+  .page-leave-to {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-from,
+  .page-leave-to {
+    transform: none;
+  }
+}

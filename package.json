@@ -1,0 +1,16 @@
+{
+  "name": "theminimark",
+  "private": true,
+  "description": "Run PHP API + Vite storefront together for local development.",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "php -S 127.0.0.1:8888 -t backend/api backend/api/router.php",
+    "dev:web": "npm run dev --prefix frontend",
+    "dev:db": "docker compose up -d db",
+    "check:db": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-dev-db.ps1",
+    "install:all": "npm install && npm install --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

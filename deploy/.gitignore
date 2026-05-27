@@ -1,0 +1,2 @@
+# Production secrets — copy to Hostinger, never commit filled copies
+hostinger-config.local.php
