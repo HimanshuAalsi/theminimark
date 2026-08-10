@@ -1,0 +1,70 @@
+/*
+  Primary / pill buttons — centered label + icon, gradient fill (see brand.css).
+*/
+.tm-btn,
+.ui-btn--primary,
+.pcard__add,
+.pcard__quick-add,
+.pcard__action--primary,
+.sticky-buy__btn,
+.pdp__cart-btn,
+.pdp__mobile-cart,
+.shop-toolbar__btn,
+.hero__btn,
+.hero__btn--primary,
+.checkout__btn,
+.checkout__mobile-cart,
+.home__personalise-cta,
+.home__viewall-link,
+.hiw__cta,
+.pers-card__cta,
+.login__submit,
+.register__submit,
+.forgot__submit,
+.profile__save,
+.not-found__btn,
+.create-set__checkout,
+.cart-drawer__checkout,
+.cart__checkout,
+.cart__checkout-btn,
+.newsletter__btn,
+.news__btn,
+.sale-cta__btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+  box-sizing: border-box !important;
+  gap: 0.4rem !important;
+  vertical-align: middle;
+}
+
+.pcard__add,
+.ui-btn--block,
+.tm-btn--block {
+  width: 100% !important;
+}
+
+.pcard__add svg,
+.pcard__action--primary svg,
+.home__personalise-cta svg,
+.hiw__cta svg,
+.pers-card__cta svg {
+  flex-shrink: 0;
+}
+
+/* Full-width row CTAs */
+.home__viewall {
+  display: flex;
+  justify-content: center;
+}
+
+.home__viewall-link {
+  max-width: 100%;
+  padding: 0.75rem 1.5rem !important;
+  text-decoration: none !important;
+  white-space: normal;
+  word-break: break-word;
+  hyphens: auto;
+}

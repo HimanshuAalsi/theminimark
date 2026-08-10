@@ -3,6 +3,9 @@ import { Heart, ShoppingBag } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import ProductCard from '@/components/product/ProductCard.vue'
+import ProductGridSkeleton from '@/components/shop/ProductGridSkeleton.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogStore } from '@/stores/catalog'
 import { useWishlistStore } from '@/stores/wishlist'
@@ -12,7 +15,7 @@ const auth = useAuthStore()
 const catalogStore = useCatalogStore()
 const wishlist = useWishlistStore()
 const { isAuthenticated } = storeToRefs(auth)
-const { catalog } = storeToRefs(catalogStore)
+const { catalog, loading: catalogLoading, ready: catalogReady } = storeToRefs(catalogStore)
 const { productIds, ready } = storeToRefs(wishlist)
 
 void catalogStore.ensureLoaded()
@@ -22,6 +25,8 @@ const items = computed(() => {
   const ids = new Set(productIds.value)
   return catalog.value.filter((p) => ids.has(p.id))
 })
+
+const loading = computed(() => !ready.value || (catalogLoading.value && !catalogReady.value))
 </script>
 
 <template>
@@ -42,18 +47,27 @@ const items = computed(() => {
         </p>
       </header>
 
-      <p v-if="!ready" class="wishlist__status">Loading wishlist…</p>
+      <ProductGridSkeleton v-if="loading" :count="4" />
 
-      <div v-else-if="items.length === 0" class="wishlist__empty tm-hover-lift">
-        <Heart :size="40" :stroke-width="1.5" aria-hidden="true" />
-        <p class="wishlist__empty-text">Your wishlist is empty.</p>
-        <RouterLink to="/shop" class="wishlist__cta">
-          <ShoppingBag :size="18" :stroke-width="2.25" aria-hidden="true" />
-          Browse shop
-        </RouterLink>
-      </div>
+      <UiEmptyState
+        v-else-if="items.length === 0"
+        title="Your wishlist is empty"
+        description="Save pieces you love and come back when you're ready to order."
+      >
+        <template #icon>
+          <Heart :size="22" :stroke-width="1.75" />
+        </template>
+        <template #action>
+          <RouterLink to="/shop">
+            <UiButton>
+              <ShoppingBag :size="17" />
+              Browse shop
+            </UiButton>
+          </RouterLink>
+        </template>
+      </UiEmptyState>
 
-      <div v-else class="wishlist__grid">
+      <div v-else class="wishlist__grid tm-product-grid">
         <ProductCard v-for="p in items" :key="p.id" :product="p" />
       </div>
     </div>
@@ -62,82 +76,42 @@ const items = computed(() => {
 
 <style scoped>
 .wishlist {
-  padding-top: 2rem;
-  padding-bottom: 4rem;
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
 }
 
 .wishlist__head {
-  max-width: 38rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .wishlist__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.5rem;
-  font-size: 0.78rem;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--tm-accent);
 }
 
 .wishlist__title {
   margin: 0 0 0.5rem;
-  font-family: var(--font-display);
-  font-size: clamp(1.85rem, 3vw, 2.35rem);
+  font-family: var(--tm-font-display);
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 500;
+  color: var(--tm-ink);
 }
 
 .wishlist__lead {
   margin: 0;
-  color: var(--color-ink-muted);
-  line-height: 1.6;
-}
-
-.wishlist__lead a {
-  font-weight: 650;
-  color: var(--color-accent);
-}
-
-.wishlist__status {
-  color: var(--color-ink-muted);
-}
-
-.wishlist__empty {
-  max-width: 24rem;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-elevated);
-  color: var(--color-ink-muted);
-}
-
-.wishlist__empty-text {
-  margin: 0.75rem 0 1.25rem;
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.wishlist__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: var(--tap-min);
-  padding: 0 1.25rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
-  color: #fff;
-  font-weight: 700;
-  text-decoration: none;
+  max-width: 32rem;
+  color: var(--tm-ink-muted);
+  line-height: 1.55;
 }
 
 .wishlist__grid {
-  display: grid;
-  gap: 1.1rem;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /* Layout from .tm-product-grid */
 }
 </style>

@@ -8,11 +8,36 @@ declare(strict_types=1);
  * @param list<array{productId?: string|int, name: string, unitPrice: float|int, quantity: int}> $lines
  * @return array{ok: bool, orderId?: int, message: string}
  */
-function tm_order_create(PDO $pdo, string $customerEmail, ?string $customerName, string $currency, array $lines, ?string $notes): array
-{
+/**
+ * @param array{productId?: string|int, name?: string}|null $freeGift
+ */
+function tm_order_create(
+    PDO $pdo,
+    string $customerEmail,
+    ?string $customerName,
+    string $currency,
+    array $lines,
+    ?string $notes,
+    ?array $freeGift = null,
+    ?string $couponCode = null,
+    ?array $shipping = null
+): array {
     $customerEmail = strtolower(trim($customerEmail));
     if ($customerEmail === '' || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
         return ['ok' => false, 'message' => 'Invalid customer email'];
+    }
+
+    $customerName = $customerName !== null ? trim($customerName) : '';
+    if ($customerName === '' || strlen($customerName) < 2) {
+        return ['ok' => false, 'message' => 'Customer name is required'];
+    }
+
+    if ($shipping === null) {
+        return ['ok' => false, 'message' => 'Shipping details are required'];
+    }
+    $shippingCheck = tm_order_validate_shipping($shipping);
+    if (!$shippingCheck['ok']) {
+        return ['ok' => false, 'message' => $shippingCheck['message'] ?? 'Invalid shipping details'];
     }
 
     if ($lines === []) {
@@ -24,26 +49,64 @@ function tm_order_create(PDO $pdo, string $customerEmail, ?string $customerName,
         $currency = 'USD';
     }
 
-    $subtotal = 0.0;
+    $itemsSubtotal = 0.0;
     foreach ($lines as $line) {
         $qty = max(1, (int) ($line['quantity'] ?? 1));
         $price = (float) ($line['unitPrice'] ?? 0);
-        $subtotal += $price * $qty;
+        $itemsSubtotal += $price * $qty;
     }
+    $itemsSubtotal = round($itemsSubtotal, 2);
+
+    $couponDiscount = 0.0;
+    $appliedCoupon = null;
+    if ($couponCode !== null && trim($couponCode) !== '') {
+        require_once __DIR__ . '/coupons.php';
+        $validated = tm_coupon_validate($pdo, $couponCode, $customerEmail, $itemsSubtotal);
+        if (!$validated['ok']) {
+            return ['ok' => false, 'message' => $validated['message'] ?? 'Invalid coupon'];
+        }
+        $couponDiscount = (float) ($validated['discountInr'] ?? 0);
+        $appliedCoupon = strtoupper(trim($couponCode));
+    }
+
+    $chargeTotal = tm_order_charge_total_inr($itemsSubtotal, $couponDiscount);
+
+    $noteBody = $notes !== null && $notes !== '' ? trim($notes) : '';
+    $rewardNotes = tm_order_reward_notes($itemsSubtotal, $freeGift, $appliedCoupon, $couponDiscount);
+    $combinedNotes = trim($noteBody . ($noteBody !== '' ? "\n" : '') . implode("\n", $rewardNotes));
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare(
-            'INSERT INTO orders (status, customer_email, customer_name, currency, subtotal, notes)
-             VALUES (\'pending\', :email, :name, :currency, :subtotal, :notes)'
-        );
-        $stmt->execute([
-            ':email' => $customerEmail,
-            ':name' => $customerName !== null && $customerName !== '' ? substr($customerName, 0, 255) : null,
-            ':currency' => $currency,
-            ':subtotal' => round($subtotal, 2),
-            ':notes' => $notes !== null && $notes !== '' ? substr($notes, 0, 5000) : null,
-        ]);
+        $hasCouponCols = tm_orders_has_coupon_columns($pdo);
+        if ($hasCouponCols) {
+            $stmt = $pdo->prepare(
+                'INSERT INTO orders (status, customer_email, customer_name, currency, subtotal, items_subtotal, coupon_code, coupon_discount, notes)
+                 VALUES (\'pending\', :email, :name, :currency, :subtotal, :items_subtotal, :coupon_code, :coupon_discount, :notes)'
+            );
+            $stmt->execute([
+                ':email' => $customerEmail,
+                ':name' => $customerName !== null && $customerName !== '' ? substr($customerName, 0, 255) : null,
+                ':currency' => $currency,
+                ':subtotal' => $chargeTotal,
+                ':items_subtotal' => $itemsSubtotal,
+                ':coupon_code' => $appliedCoupon,
+                ':coupon_discount' => $couponDiscount > 0 ? $couponDiscount : null,
+                ':notes' => $combinedNotes !== '' ? substr($combinedNotes, 0, 5000) : null,
+            ]);
+        } else {
+            $stmt = $pdo->prepare(
+                'INSERT INTO orders (status, customer_email, customer_name, currency, subtotal, items_subtotal, notes)
+                 VALUES (\'pending\', :email, :name, :currency, :subtotal, :items_subtotal, :notes)'
+            );
+            $stmt->execute([
+                ':email' => $customerEmail,
+                ':name' => $customerName !== null && $customerName !== '' ? substr($customerName, 0, 255) : null,
+                ':currency' => $currency,
+                ':subtotal' => $chargeTotal,
+                ':items_subtotal' => $itemsSubtotal,
+                ':notes' => $combinedNotes !== '' ? substr($combinedNotes, 0, 5000) : null,
+            ]);
+        }
         $orderId = (int) $pdo->lastInsertId();
 
         $lineStmt = $pdo->prepare(
@@ -64,9 +127,19 @@ function tm_order_create(PDO $pdo, string $customerEmail, ?string $customerName,
                 ':unit_price' => $price,
                 ':quantity' => $qty,
             ]);
+            $lineId = (int) $pdo->lastInsertId();
+            if (isset($line['personalization']) && is_array($line['personalization'])) {
+                tm_personalisation_save_for_line($pdo, $lineId, $line['personalization']);
+            }
         }
 
+        tm_order_save_shipping($pdo, $orderId, $shipping);
+
         $pdo->commit();
+
+        require_once __DIR__ . '/order_lifecycle.php';
+        tm_order_after_create($pdo, $orderId);
+
         return ['ok' => true, 'orderId' => $orderId, 'message' => 'Order received'];
     } catch (Throwable $e) {
         $pdo->rollBack();
@@ -126,5 +199,80 @@ function tm_order_mark_paid(PDO $pdo, int $orderId, string $paymentId): array
         ':id' => $orderId,
     ]);
 
+    require_once __DIR__ . '/order_lifecycle.php';
+    tm_order_on_status_change($pdo, $orderId, 'pending', 'paid');
+
     return ['ok' => true, 'message' => 'Payment recorded'];
+}
+
+function tm_orders_has_coupon_columns(PDO $pdo): bool
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $st = $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'coupon_code'"
+    );
+    $cache = $st !== false && (int) $st->fetchColumn() > 0;
+
+    return $cache;
+}
+
+/**
+ * Public order lookup — requires matching email.
+ *
+ * @return array{ok: bool, message: string, order?: array<string, mixed>}
+ */
+function tm_order_track_public(PDO $pdo, int $orderId, string $email): array
+{
+    $email = strtolower(trim($email));
+    if ($orderId < 1 || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['ok' => false, 'message' => 'Invalid order number or email'];
+    }
+
+    $st = $pdo->prepare(
+        'SELECT id, status, customer_email, currency, subtotal, created_at
+         FROM orders WHERE id = :id LIMIT 1'
+    );
+    $st->execute([':id' => $orderId]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if ($row === false) {
+        return ['ok' => false, 'message' => 'Order not found'];
+    }
+    if (strtolower(trim((string) $row['customer_email'])) !== $email) {
+        return ['ok' => false, 'message' => 'Order not found'];
+    }
+
+    $linesSt = $pdo->prepare(
+        'SELECT id, product_name, quantity FROM order_lines WHERE order_id = :id ORDER BY id ASC'
+    );
+    $linesSt->execute([':id' => $orderId]);
+    $lineRows = $linesSt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $lines = [];
+    $itemCount = 0;
+    foreach ($lineRows as $line) {
+        $qty = max(1, (int) ($line['quantity'] ?? 1));
+        $itemCount += $qty;
+        $lines[] = [
+            'id' => (int) $line['id'],
+            'name' => (string) ($line['product_name'] ?? 'Item'),
+            'quantity' => $qty,
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'message' => 'Order found',
+        'order' => [
+            'id' => (int) $row['id'],
+            'status' => (string) $row['status'],
+            'createdAt' => (string) $row['created_at'],
+            'subtotal' => (float) $row['subtotal'],
+            'currency' => (string) $row['currency'],
+            'itemCount' => $itemCount,
+            'lines' => $lines,
+        ],
+    ];
 }

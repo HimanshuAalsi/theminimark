@@ -107,7 +107,7 @@ import SiteLogo from '@/components/layout/SiteLogo.vue'
 
 .notfound__btn--primary {
   color: #fff !important;
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
+  background: var(--tm-gradient);
   box-shadow: 0 4px 16px rgba(45, 92, 82, 0.28);
 }
 

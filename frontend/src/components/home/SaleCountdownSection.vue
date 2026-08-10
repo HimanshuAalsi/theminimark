@@ -3,7 +3,21 @@ import { Zap } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-const end = ref(Date.now() + 7 * 24 * 60 * 60 * 1000)
+const props = withDefaults(
+  defineProps<{
+    endAt?: string
+    headline?: string
+    subheadline?: string
+  }>(),
+  {
+    headline: 'Limited-time offers',
+    subheadline: 'Extra savings on bookmarks & gift sets',
+  },
+)
+
+const end = ref(
+  props.endAt ? new Date(props.endAt).getTime() : Date.now() + 7 * 24 * 60 * 60 * 1000,
+)
 const now = ref(Date.now())
 let id: ReturnType<typeof setInterval>
 
@@ -33,14 +47,14 @@ onUnmounted(() => clearInterval(id))
 </script>
 
 <template>
-  <section class="sale tm-animate-in">
+  <section class="sale">
     <div class="sale__glow" aria-hidden="true" />
     <div class="tm-container sale__inner">
       <p class="sale__eyebrow">
         <Zap :size="15" :stroke-width="2.25" class="sale__eyebrow-ico" aria-hidden="true" />
-        Limited time · Up to 20% off
+        {{ subheadline }}
       </p>
-      <h2 class="sale__title">Stationery &amp; bookmark sale</h2>
+      <h2 class="sale__title">{{ headline }}</h2>
 
       <div class="sale__timer" aria-label="Sale ends in">
         <div class="sale__unit">

@@ -12,7 +12,7 @@ function tm_cors(): void
     $origin = tm_config()['cors_origin'] ?? '*';
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
-    header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
+    header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Accept, Authorization');
     header('Access-Control-Max-Age: 86400');
 }

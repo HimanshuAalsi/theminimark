@@ -307,8 +307,8 @@ See **`deploy/RAZORPAY.md`**: run `migration_payment_razorpay.sql`, add API keys
 
 | | Local (`npm run dev`) | Hostinger production |
 |--|----------------------|----------------------|
-| Storefront | `http://localhost:5173` | `https://yourdomain.com` |
-| API | Proxied `/api` → PHP :8888 | `https://yourdomain.com/api` |
+| Storefront | `http://localhost:5174` (Vite; was 5173 if port busy) | `https://yourdomain.com` |
+| API (local) | `http://localhost:5174/api/v1/...` (proxy → PHP `127.0.0.1:8888`) | `https://yourdomain.com/api` |
 | `api_base_path` | `''` | `'/api'` |
 | Database | XAMPP `theminimark` | Hostinger MySQL name |
 

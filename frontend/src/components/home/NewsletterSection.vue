@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { Mail, Send } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
 import { useNewsletterForm } from '@/composables/useNewsletterForm'
+import { useHomePageStore } from '@/stores/homePage'
 
 const { email, feedback, busy, submit } = useNewsletterForm('home')
+const homePage = useHomePageStore()
+const { newsletter } = storeToRefs(homePage)
 </script>
 
 <template>
-  <section class="news tm-section tm-animate-in">
+  <section class="news tm-section">
     <div class="tm-container news__inner">
       <header class="section-head section-head--center">
-        <p class="section-eyebrow">Newsletter</p>
-        <h2 class="section-title">Get offers &amp; new arrivals</h2>
-        <p class="section-desc">
-          Occasional emails — no spam. Unsubscribe anytime (pattern used by indie stationery brands).
-        </p>
+        <p class="section-eyebrow">{{ newsletter.eyebrow }}</p>
+        <h2 class="section-title">{{ newsletter.title }}</h2>
+        <p class="section-desc">{{ newsletter.description }}</p>
       </header>
       <form class="news__form" @submit="submit">
         <div class="news__row">
@@ -25,16 +27,16 @@ const { email, feedback, busy, submit } = useNewsletterForm('home')
             type="email"
             name="email"
             class="news__input"
-            placeholder="Your email"
+            :placeholder="newsletter.placeholder"
             autocomplete="email"
           />
           <button type="submit" class="news__btn tm-press" :disabled="busy">
             <Send v-if="!busy" :size="18" :stroke-width="2.25" class="news__btn-ico" aria-hidden="true" />
-            <span>{{ busy ? 'Sending…' : 'Subscribe' }}</span>
+            <span>{{ busy ? 'Sending…' : newsletter.buttonLabel }}</span>
           </button>
         </div>
         <p v-if="feedback" class="news__feedback" role="status">{{ feedback }}</p>
-        <p class="news__fine">We respect your inbox. No third-party ads.</p>
+        <p class="news__fine">{{ newsletter.finePrint }}</p>
       </form>
     </div>
   </section>
@@ -101,7 +103,7 @@ const { email, feedback, busy, submit } = useNewsletterForm('home')
   gap: 0.4rem;
   border: none;
   padding: 0 1.25rem;
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
+  background: var(--tm-gradient);
   color: #fff;
   font-weight: 700;
   font-size: 0.95rem;

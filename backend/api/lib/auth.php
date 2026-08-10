@@ -170,13 +170,28 @@ function tm_auth_bearer_token(): ?string
     return $m[1];
 }
 
-/** @return array{id: int, email: string, full_name: string}|null */
+/** @return array{id: int, email: string, full_name: string, role?: string}|null */
 function tm_auth_user_by_id(PDO $pdo, int $id): ?array
 {
-    $st = $pdo->prepare('SELECT id, email, full_name FROM users WHERE id = ? LIMIT 1');
+    static $hasRole = null;
+    if ($hasRole === null) {
+        $chk = $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'"
+        );
+        $hasRole = $chk !== false && (int) $chk->fetchColumn() > 0;
+    }
+    $cols = $hasRole ? 'id, email, full_name, role' : 'id, email, full_name';
+    $st = $pdo->prepare("SELECT {$cols} FROM users WHERE id = ? LIMIT 1");
     $st->execute([$id]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
-    return $row === false ? null : $row;
+    if ($row === false) {
+        return null;
+    }
+    if (!$hasRole) {
+        $row['role'] = 'customer';
+    }
+    return $row;
 }
 
 function tm_auth_user_public(array $row): array
@@ -185,6 +200,28 @@ function tm_auth_user_public(array $row): array
         'id' => (int) $row['id'],
         'email' => (string) $row['email'],
         'fullName' => (string) $row['full_name'],
+        'role' => (string) ($row['role'] ?? 'customer'),
+    ];
+}
+
+/** @return array{ok: bool, message?: string, userId?: int, user?: array} */
+function tm_auth_require_admin(PDO $pdo, ?string $rawToken): array
+{
+    $auth = tm_auth_require_user($pdo, $rawToken);
+    if (!$auth['ok']) {
+        return $auth;
+    }
+    $user = tm_auth_user_by_id($pdo, (int) $auth['userId']);
+    if ($user === null) {
+        return ['ok' => false, 'message' => 'User not found'];
+    }
+    if (($user['role'] ?? 'customer') !== 'admin') {
+        return ['ok' => false, 'message' => 'Admin access required'];
+    }
+    return [
+        'ok' => true,
+        'userId' => (int) $auth['userId'],
+        'user' => tm_auth_user_public($user),
     ];
 }
 
@@ -247,7 +284,16 @@ function tm_auth_register(PDO $pdo, string $email, string $password, string $ful
 function tm_auth_login(PDO $pdo, string $email, string $password): array
 {
     $email = tm_auth_normalize_email($email);
-    $st = $pdo->prepare('SELECT id, email, full_name, password_hash FROM users WHERE email = ? LIMIT 1');
+    static $hasRole = null;
+    if ($hasRole === null) {
+        $chk = $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'"
+        );
+        $hasRole = $chk !== false && (int) $chk->fetchColumn() > 0;
+    }
+    $cols = $hasRole ? 'id, email, full_name, password_hash, role' : 'id, email, full_name, password_hash';
+    $st = $pdo->prepare("SELECT {$cols} FROM users WHERE email = ? LIMIT 1");
     $st->execute([$email]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     $hash = null;
@@ -258,7 +304,12 @@ function tm_auth_login(PDO $pdo, string $email, string $password): array
         return ['ok' => false, 'message' => 'Invalid email or password.'];
     }
     $id = (int) $row['id'];
-    $user = ['id' => $id, 'email' => (string) $row['email'], 'full_name' => (string) $row['full_name']];
+    $user = [
+        'id' => $id,
+        'email' => (string) $row['email'],
+        'full_name' => (string) $row['full_name'],
+        'role' => (string) ($row['role'] ?? 'customer'),
+    ];
     try {
         $token = tm_auth_issue_session($pdo, $id);
     } catch (PDOException $e) {

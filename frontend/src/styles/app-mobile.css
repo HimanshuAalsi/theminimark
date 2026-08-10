@@ -1,0 +1,46 @@
+@media (max-width: 1023px) {
+  :root {
+    --header-h: 52px;
+    --app-tab-h: 4rem;
+  }
+
+  html.layout-app {
+    overscroll-behavior-y: none;
+  }
+
+  body.layout-app {
+    background-attachment: scroll;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .layout--app {
+    min-height: 100dvh;
+    min-height: 100svh;
+  }
+
+  .layout--app .layout__main {
+    padding-bottom: calc(var(--app-tab-h) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .layout--app.layout--immersive .layout__main {
+    padding-bottom: 0;
+  }
+
+  .layout--app .tm-section {
+    padding: 1.75rem 0;
+  }
+
+  .layout--app .section-head {
+    margin-bottom: 1.25rem;
+  }
+
+  .layout--app .section-title {
+    font-size: 1.45rem;
+  }
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --header-h: 48px;
+  }
+}

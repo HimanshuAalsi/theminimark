@@ -63,7 +63,14 @@ function scroll(dir: -1 | 1) {
 @media (max-width: 767px) {
   .pcar__cell {
     flex: 0 0 calc(50% - 8px);
-    min-width: 160px;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 399px) {
+  .pcar__cell {
+    flex: 0 0 calc(50% - 6px);
   }
 }
 

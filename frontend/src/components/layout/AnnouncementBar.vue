@@ -20,8 +20,8 @@ const { announcement } = storeToRefs(site)
 .announce {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(105deg, #1a2825 0%, #2d4a42 40%, #1e3330 100%);
-  color: #f4f1eb;
+  background: var(--tm-gradient-hero);
+  color: var(--tm-on-accent);
   text-align: center;
   padding: 0.55rem 1rem;
   font-size: 0.8125rem;

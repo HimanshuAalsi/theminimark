@@ -106,7 +106,7 @@ export async function openRazorpayCheckout(options: OpenRazorpayOptions): Promis
       email: session.customer?.email ?? '',
       contact: phone?.replace(/\D/g, '').slice(-10) ?? '',
     },
-    theme: { color: '#2d5c52' },
+    theme: { color: '#3a8f7c' },
     handler: (response: RazorpaySuccessResponse) => {
       void onSuccess(response)
     },

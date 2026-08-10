@@ -21,6 +21,11 @@ export function getApiBaseUrl(): string {
   return raw.replace(/\/+$/, '')
 }
 
+/** `/api/v1` in local dev (Vite proxy); `/v1` when `VITE_API_BASE_URL` is set. */
+export function apiV1Prefix(): string {
+  return getApiBaseUrl() ? '/v1' : '/api/v1'
+}
+
 export function apiUrl(path: string): string {
   const base = getApiBaseUrl()
   const p = path.startsWith('/') ? path : `/${path}`
@@ -31,7 +36,7 @@ export function apiUrl(path: string): string {
 export type ApiFetchOptions = RequestInit & { authToken?: string | null }
 
 const UNREACHABLE =
-  'Cannot reach the API. From the repo root run `npm run dev` (starts PHP on :8888 and Vite), or in one terminal `cd backend/api` then `php -S 127.0.0.1:8888 router.php`.'
+  'Cannot reach the API. From the repo root run `npm run dev` (app http://localhost:5174, PHP on :8888, /api proxied). Leave VITE_API_BASE_URL unset in dev.'
 
 function isGatewayStatus(status: number): boolean {
   return status === 502 || status === 503 || status === 504

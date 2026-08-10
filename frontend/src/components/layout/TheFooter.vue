@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { Facebook, Instagram, Loader2, Pin, Send, Twitter } from 'lucide-vue-next'
+import { Facebook, Instagram, MessageCircle, Youtube } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import SiteLogo from '@/components/layout/SiteLogo.vue'
-import { useNewsletterForm } from '@/composables/useNewsletterForm'
-
-const { email, feedback, busy, submit: footerSubmit } = useNewsletterForm('footer')
+import { SITE_SOCIAL, SITE_WHATSAPP_CHANNEL_URL } from '@/data/siteContact'
 </script>
 
 <template>
@@ -18,17 +16,18 @@ const { email, feedback, busy, submit: footerSubmit } = useNewsletterForm('foote
             straightforward shipping—made for readers and everyday desks.
           </p>
           <div class="site-footer__social" role="list">
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="site-footer__soc">
-              <Facebook :size="18" :stroke-width="1.75" />
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="X" class="site-footer__soc">
-              <Twitter :size="18" :stroke-width="1.75" />
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="site-footer__soc">
-              <Instagram :size="18" :stroke-width="1.75" />
-            </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Pinterest" class="site-footer__soc">
-              <Pin :size="18" :stroke-width="1.75" />
+            <a
+              v-for="item in SITE_SOCIAL"
+              :key="item.id"
+              :href="item.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="item.label"
+              class="site-footer__soc"
+            >
+              <Instagram v-if="item.id === 'instagram'" :size="18" :stroke-width="1.75" />
+              <Facebook v-else-if="item.id === 'facebook'" :size="18" :stroke-width="1.75" />
+              <Youtube v-else-if="item.id === 'youtube'" :size="18" :stroke-width="1.75" />
             </a>
           </div>
         </div>
@@ -37,43 +36,45 @@ const { email, feedback, busy, submit: footerSubmit } = useNewsletterForm('foote
           <h3 class="site-footer__h">Quick links</h3>
           <ul class="site-footer__list">
             <li><RouterLink to="/account">My account</RouterLink></li>
-            <li><RouterLink to="/cart">Shopping Cart</RouterLink></li>
+            <li><RouterLink to="/cart">Shopping cart</RouterLink></li>
+            <li><RouterLink to="/track-order">Track order</RouterLink></li>
+            <li><RouterLink to="/blog">Blog</RouterLink></li>
             <li><RouterLink to="/wishlist">Wishlist</RouterLink></li>
-            <li><RouterLink to="/shop">Product Compare</RouterLink></li>
+            <li><RouterLink to="/create-your-set">Create your own set</RouterLink></li>
           </ul>
         </div>
 
         <div class="site-footer__col">
           <h3 class="site-footer__h">Information</h3>
           <ul class="site-footer__list">
-            <li><RouterLink to="/shop">Privacy policy</RouterLink></li>
-            <li><RouterLink to="/cart">Refund policy</RouterLink></li>
-            <li><RouterLink to="/shop">Shipping &amp; Return</RouterLink></li>
-            <li><RouterLink to="/shop">Term &amp; conditions</RouterLink></li>
+            <li><RouterLink to="/policies/privacy">Privacy policy</RouterLink></li>
+            <li><RouterLink to="/policies/refund">Refund &amp; return policy</RouterLink></li>
+            <li><RouterLink to="/policies/shipping">Shipping policy</RouterLink></li>
+            <li><RouterLink to="/policies/terms">Terms of service</RouterLink></li>
           </ul>
         </div>
 
         <div class="site-footer__col">
-          <h2 class="site-footer__h site-footer__h--lg">Newsletter</h2>
+          <h2 class="site-footer__h site-footer__h--lg">Stay connected</h2>
           <p class="site-footer__p">
-            Occasional new arrivals and offers—unsubscribe anytime. No spam.
+            Join our WhatsApp channel for new products and offers — not a newsletter.
           </p>
-          <form class="site-footer__form" @submit="footerSubmit">
-            <div class="site-footer__field">
-              <input
-                v-model="email"
-                type="email"
-                class="site-footer__input"
-                placeholder="Enter your email address..."
-                autocomplete="email"
-              />
-              <button type="submit" class="site-footer__submit tm-press" aria-label="Subscribe" :disabled="busy">
-                <Loader2 v-if="busy" :size="18" class="site-footer__spin" aria-hidden="true" />
-                <Send v-else :size="18" :stroke-width="2" aria-hidden="true" />
-              </button>
-            </div>
-            <p v-if="feedback" class="site-footer__feedback" role="status">{{ feedback }}</p>
-          </form>
+          <a
+            :href="SITE_WHATSAPP_CHANNEL_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="site-footer__wa tm-press"
+          >
+            <MessageCircle :size="18" :stroke-width="2" aria-hidden="true" />
+            Join WhatsApp channel
+          </a>
+          <ul class="site-footer__handles">
+            <li v-for="item in SITE_SOCIAL" :key="item.id">
+              <a :href="item.href" target="_blank" rel="noopener noreferrer">
+                {{ item.label }} · {{ item.handle }}
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -85,7 +86,7 @@ const { email, feedback, busy, submit: footerSubmit } = useNewsletterForm('foote
           <p class="site-footer__copy">© 2026 The Minimark. All rights reserved.</p>
         </div>
         <img
-          src="https://theminimark.com/wp-content/uploads/2026/03/payment_icon.svg"
+          src="/payment-methods.svg"
           width="192"
           height="14"
           alt="Payment methods"
@@ -189,67 +190,38 @@ const { email, feedback, busy, submit: footerSubmit } = useNewsletterForm('foote
   color: var(--color-accent-hover);
 }
 
-.site-footer__field {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-surface-elevated);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.site-footer__field:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
-.site-footer__input {
-  flex: 1;
-  border: none;
-  padding: 12px 12px;
-  font: inherit;
-  font-size: 14px;
-}
-
-.site-footer__submit {
+.site-footer__wa {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 52px;
-  border: none;
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
-  color: #fff;
-  cursor: pointer;
-  transition:
-    filter 0.2s ease,
-    transform 0.15s ease;
+  gap: 0.45rem;
+  min-height: var(--tap-min);
+  padding: 0 1.1rem;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff !important;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.site-footer__submit:hover:not(:disabled) {
-  filter: brightness(1.06);
+.site-footer__handles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.site-footer__spin {
-  animation: spin 0.8s linear infinite;
+.site-footer__handles li {
+  margin-bottom: 0.45rem;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.site-footer__submit:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.site-footer__feedback {
-  margin: 0.65rem 0 0;
-  font-size: 0.8125rem;
+.site-footer__handles a {
+  font-size: 0.88rem;
   color: var(--color-ink-muted);
+}
+
+.site-footer__handles a:hover {
+  color: var(--color-accent);
 }
 
 .site-footer__bottom {

@@ -1,19 +1,32 @@
 <script setup lang="ts">
-import { Lock, MessageCircle, Truck, Undo2 } from 'lucide-vue-next'
-import { trustItems } from '@/data/siteContent'
+import { CreditCard, MessageCircle, Percent, Truck, Undo2 } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
+import { aosDelay } from '@/lib/aos'
+import { useHomePageStore } from '@/stores/homePage'
+
+const homePage = useHomePageStore()
+const { trustItems } = storeToRefs(homePage)
 
 const icons = {
   truck: Truck,
   return: Undo2,
-  lock: Lock,
+  payment: CreditCard,
+  offer: Percent,
+  lock: CreditCard,
   chat: MessageCircle,
 } as const
 </script>
 
 <template>
-  <section class="trust tm-animate-in" aria-label="Why shop with us">
+  <section class="trust" aria-label="Why shop with us">
     <div class="tm-container trust__grid">
-      <div v-for="item in trustItems" :key="item.title" class="trust__item tm-hover-lift">
+      <div
+        v-for="(item, i) in trustItems"
+        :key="item.title"
+        class="trust__item tm-hover-lift"
+        data-aos="fade-up"
+        :data-aos-delay="String(aosDelay(i, 70))"
+      >
         <div class="trust__icon" aria-hidden="true">
           <component :is="icons[item.icon as keyof typeof icons] ?? MessageCircle" :size="22" :stroke-width="2" />
         </div>
@@ -70,7 +83,7 @@ const icons = {
   width: 46px;
   height: 46px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(145deg, var(--color-accent-soft), rgba(255, 255, 255, 0.5));
+  background: var(--tm-gradient-soft);
   color: var(--color-accent);
   display: grid;
   place-items: center;

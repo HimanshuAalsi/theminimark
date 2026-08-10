@@ -1,27 +1,13 @@
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { defineStore } from 'pinia'
-import { apiFetch, getApiBaseUrl } from '@/lib/api'
-import { announcement as defaultAnnouncement } from '@/data/siteContent'
-
-function apiPrefix(): string {
-  return getApiBaseUrl() ? '/v1' : '/api/v1'
-}
+import { useHomePageStore } from '@/stores/homePage'
 
 export const useSiteStore = defineStore('site', () => {
-  const announcement = ref(defaultAnnouncement)
-  const hydrated = ref(false)
+  const homePage = useHomePageStore()
+  const announcement = computed(() => homePage.announcement)
 
   async function hydrate(): Promise<void> {
-    if (hydrated.value) return
-    hydrated.value = true
-    try {
-      const data = await apiFetch<{ announcement?: string }>(`${apiPrefix()}/site`)
-      if (typeof data.announcement === 'string' && data.announcement.trim() !== '') {
-        announcement.value = data.announcement.trim()
-      }
-    } catch {
-      /* keep bundled default when API is offline */
-    }
+    await homePage.hydrate()
   }
 
   return { announcement, hydrate }

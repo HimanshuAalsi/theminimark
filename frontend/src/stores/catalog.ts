@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, apiFetch, getApiBaseUrl } from '@/lib/api'
+import { resolveProductImageUrl, resolveProductImages } from '@/lib/productImage'
 import {
   favouritesProducts,
   HOME_BESTSELLER_LIMIT,
+  isShopCategory,
   magneticBookmarkProducts,
   matchesBookmarkType,
-  type ShopCategory,
   type SiteProduct,
 } from '@/data/siteContent'
 
@@ -14,29 +15,23 @@ function apiPrefix(): string {
   return getApiBaseUrl() ? '/v1' : '/api/v1'
 }
 
-function isShopCategory(v: unknown): v is ShopCategory {
-  return (
-    v === 'bookmarks' ||
-    v === 'cards' ||
-    v === 'calendars' ||
-    v === 'magnets' ||
-    v === 'hampers'
-  )
-}
-
 function mapApiProduct(raw: Record<string, unknown>): SiteProduct | null {
   const category = raw.category
   if (!isShopCategory(category)) {
     return null
   }
+  const categoryStr = String(category)
+  const images = resolveProductImages(raw, categoryStr)
   return {
     id: String(raw.id),
     slug: String(raw.slug),
     name: String(raw.name),
-    image: String(raw.image ?? raw.imageUrl ?? ''),
+    image: images[0] ?? resolveProductImageUrl(String(raw.image ?? raw.imageUrl ?? ''), categoryStr),
+    images,
     price: Number(raw.price),
     compareAt: Number(raw.compareAt ?? raw.compare_at ?? raw.price),
     category,
+    subcategory: raw.subcategory ? String(raw.subcategory) : undefined,
     homeBestseller: Boolean(raw.homeBestseller),
     homeSecondary: Boolean(raw.homeSecondary),
   }

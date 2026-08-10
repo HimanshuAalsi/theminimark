@@ -1,19 +1,44 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import AnnouncementBar from '@/components/layout/AnnouncementBar.vue'
+import AppBottomNav from '@/components/layout/AppBottomNav.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 import CartDrawer from '@/components/cart/CartDrawer.vue'
+import SearchPanel from '@/components/search/SearchPanel.vue'
 import TheHeader from '@/components/layout/TheHeader.vue'
+import { useIsMobileApp } from '@/composables/useMediaQuery'
 import { storeToRefs } from 'pinia'
 import { useCatalogStore } from '@/stores/catalog'
 
+const route = useRoute()
 const catalog = useCatalogStore()
 const { devLoadNotice } = storeToRefs(catalog)
+const isMobileApp = useIsMobileApp()
+
+const showBottomNav = computed(() => !route.meta.hideBottomNav)
+const isImmersive = computed(() => Boolean(route.meta.hideBottomNav))
+
+watch(
+  isMobileApp,
+  (mobile) => {
+    document.documentElement.classList.toggle('layout-app', mobile)
+    document.body.classList.toggle('layout-app', mobile)
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
-  <div class="layout">
-    <AnnouncementBar />
-    <TheHeader />
+  <div
+    class="layout"
+    :class="{
+      'layout--app': isMobileApp,
+      'layout--immersive': isMobileApp && isImmersive,
+    }"
+  >
+    <AnnouncementBar v-if="!isMobileApp" />
+    <TheHeader :app-mode="isMobileApp" />
     <p v-if="devLoadNotice" class="layout__api-notice tm-container" role="status">
       <span class="layout__api-text">{{ devLoadNotice }}</span>
       <button type="button" class="layout__api-dismiss" @click="catalog.dismissDevNotice()">
@@ -27,8 +52,10 @@ const { devLoadNotice } = storeToRefs(catalog)
         </Transition>
       </RouterView>
     </main>
-    <TheFooter />
+    <TheFooter v-if="!isMobileApp" />
+    <AppBottomNav v-if="isMobileApp && showBottomNav" />
     <CartDrawer />
+    <SearchPanel />
   </div>
 </template>
 

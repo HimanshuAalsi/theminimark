@@ -1,43 +1,81 @@
 <script setup lang="ts">
 import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { categoryStrip } from '@/data/siteContent'
+import { storeToRefs } from 'pinia'
+import { aosDelay } from '@/lib/aos'
+import { homePageImageSrc, useHomePageStore } from '@/stores/homePage'
+
+const homePage = useHomePageStore()
+const { categoryStrip } = storeToRefs(homePage)
+
+const tiles = computed(() =>
+  categoryStrip.value.map((c) => ({
+    ...c,
+    image: homePageImageSrc(c.image),
+  })),
+)
 
 const track = ref<HTMLElement | null>(null)
+const canScrollPrev = ref(false)
+const canScrollNext = ref(false)
+const useRail = ref(false)
+
+function updateScrollState() {
+  const el = track.value
+  if (!el) return
+  useRail.value = window.matchMedia('(max-width: 639px)').matches
+  if (!useRail.value) return
+  const max = el.scrollWidth - el.clientWidth - 2
+  canScrollPrev.value = el.scrollLeft > 4
+  canScrollNext.value = el.scrollLeft < max
+}
 
 function scroll(dir: -1 | 1) {
   const el = track.value
   if (!el) return
-  const step = Math.max(220, Math.round(el.clientWidth * 0.72))
+  const card = el.querySelector<HTMLElement>('.cat-tile')
+  const step = card ? card.offsetWidth + 12 : Math.round(el.clientWidth * 0.85)
   el.scrollBy({ left: dir * step, behavior: 'smooth' })
 }
+
+let ro: ResizeObserver | null = null
+
+onMounted(() => {
+  updateScrollState()
+  window.addEventListener('resize', updateScrollState)
+  const el = track.value
+  if (el) {
+    el.addEventListener('scroll', updateScrollState, { passive: true })
+    ro = new ResizeObserver(updateScrollState)
+    ro.observe(el)
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateScrollState)
+  track.value?.removeEventListener('scroll', updateScrollState)
+  ro?.disconnect()
+})
 </script>
 
 <template>
-  <div class="cat-rail">
-    <button
-      type="button"
-      class="cat-rail__arrow cat-rail__arrow--prev tm-press"
-      aria-label="Scroll categories left"
-      @click="scroll(-1)"
-    >
-      <ChevronLeft :size="20" :stroke-width="2.25" />
-    </button>
-
-    <div ref="track" class="cat-rail__track" role="list">
+  <div class="cat-section">
+    <div ref="track" class="cat-grid" role="list">
       <RouterLink
-        v-for="c in categoryStrip"
+        v-for="(c, i) in tiles"
         :key="c.title"
         :to="c.href"
         class="cat-tile tm-hover-lift"
         role="listitem"
+        data-aos="fade-up"
+        :data-aos-delay="String(aosDelay(i, 55, 320))"
       >
         <div class="cat-tile__media">
           <img :src="c.image" :alt="c.title" loading="lazy" />
-          <div class="cat-tile__overlay" aria-hidden="true" />
         </div>
-        <div class="cat-tile__content">
+        <div class="cat-tile__body">
+          <p class="cat-tile__index">{{ String(i + 1).padStart(2, '0') }}</p>
           <h3 class="cat-tile__title">{{ c.title }}</h3>
           <p class="cat-tile__blurb">{{ c.blurb }}</p>
           <span class="cat-tile__cta">
@@ -48,189 +86,200 @@ function scroll(dir: -1 | 1) {
       </RouterLink>
     </div>
 
-    <button
-      type="button"
-      class="cat-rail__arrow cat-rail__arrow--next tm-press"
-      aria-label="Scroll categories right"
-      @click="scroll(1)"
-    >
-      <ChevronRight :size="20" :stroke-width="2.25" />
-    </button>
+    <div v-if="useRail" class="cat-section__nav" aria-hidden="false">
+      <button
+        type="button"
+        class="cat-section__arrow tm-press"
+        aria-label="Scroll categories left"
+        :disabled="!canScrollPrev"
+        @click="scroll(-1)"
+      >
+        <ChevronLeft :size="18" :stroke-width="2.25" />
+      </button>
+      <button
+        type="button"
+        class="cat-section__arrow tm-press"
+        aria-label="Scroll categories right"
+        :disabled="!canScrollNext"
+        @click="scroll(1)"
+      >
+        <ChevronRight :size="18" :stroke-width="2.25" />
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.cat-rail {
-  position: relative;
-  margin: 0 -0.35rem;
-  padding: 0 2.4rem;
+.cat-section {
+  width: 100%;
 }
 
-.cat-rail__track {
-  display: flex;
-  gap: 0.85rem;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 0.25rem;
-  padding: 0.25rem 0.15rem 0.65rem;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.cat-rail__track::-webkit-scrollbar {
-  display: none;
+/* Desktop & tablet: balanced grid — all categories visible */
+.cat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .cat-tile {
-  flex: 0 0 clamp(9.5rem, 14vw, 11.5rem);
-  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
+  min-height: 100%;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   color: inherit;
   text-decoration: none;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 0.25s ease,
-    box-shadow 0.25s ease,
+    box-shadow 0.28s ease,
     transform 0.25s var(--ease-out, ease);
 }
 
 .cat-tile:hover {
-  border-color: rgba(45, 92, 82, 0.28);
-  box-shadow: var(--shadow-float);
+  border-color: rgba(58, 143, 124, 0.35);
+  box-shadow: var(--shadow-card);
 }
 
 .cat-tile__media {
   position: relative;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
   overflow: hidden;
-  background: linear-gradient(160deg, #ebe6de, #d8d2c8);
+  background: linear-gradient(145deg, var(--color-page-2), var(--color-border));
 }
 
 .cat-tile__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.45s var(--ease-out, ease);
+  transition: transform 0.5s var(--ease-out, ease);
 }
 
 .cat-tile:hover .cat-tile__media img {
-  transform: scale(1.06);
+  transform: scale(1.05);
 }
 
-.cat-tile__overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 35%,
-    rgba(20, 19, 18, 0.55) 100%
-  );
-  pointer-events: none;
-}
-
-.cat-tile__content {
-  position: relative;
-  margin-top: -2.75rem;
-  z-index: 1;
-  padding: 0 0.75rem 0.85rem;
+.cat-tile__body {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  flex: 1;
+  gap: 0.2rem;
+  padding: 0.85rem 0.9rem 1rem;
+}
+
+.cat-tile__index {
+  margin: 0 0 0.15rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
 }
 
 .cat-tile__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 0.98rem;
+  font-size: 1.02rem;
   font-weight: 500;
-  color: #fff;
   line-height: 1.2;
-  text-shadow: 0 1px 6px rgba(20, 19, 18, 0.35);
+  color: var(--color-ink);
 }
 
 .cat-tile__blurb {
   margin: 0;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: rgba(255, 252, 248, 0.88);
-  line-height: 1.3;
+  flex: 1;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-ink-muted);
 }
 
 .cat-tile__cta {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  margin-top: 0.35rem;
-  padding: 0.28rem 0.55rem;
-  width: fit-content;
-  border-radius: 999px;
-  background: rgba(255, 252, 248, 0.95);
-  font-size: 0.72rem;
+  gap: 0.25rem;
+  margin-top: 0.55rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-accent);
-  transition:
-    gap 0.2s ease,
-    background 0.2s ease;
+  transition: gap 0.2s ease;
 }
 
 .cat-tile:hover .cat-tile__cta {
-  gap: 0.35rem;
-  background: #fff;
+  gap: 0.4rem;
 }
 
-.cat-rail__arrow {
-  position: absolute;
-  top: 42%;
-  transform: translateY(-50%);
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 2.35rem;
-  height: 2.35rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  color: var(--color-ink);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
+.cat-section__nav {
+  display: none;
 }
 
-.cat-rail__arrow:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  box-shadow: var(--shadow-float);
+@media (max-width: 1080px) {
+  .cat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.cat-rail__arrow--prev {
-  left: 0;
+@media (max-width: 720px) {
+  .cat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
 }
 
-.cat-rail__arrow--next {
-  right: 0;
-}
+@media (max-width: 639px) {
+  .cat-grid {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0.15rem;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 
-@media (max-width: 640px) {
-  .cat-rail {
-    padding: 0 2rem;
+  .cat-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .cat-tile {
-    flex-basis: 42vw;
-    min-width: 9rem;
+    flex: 0 0 min(72vw, 14.5rem);
+    scroll-snap-align: start;
   }
 
-  .cat-rail__arrow {
-    width: 2rem;
-    height: 2rem;
+  .cat-section__nav {
+    display: flex;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+  }
+
+  .cat-section__arrow {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-elevated);
+    color: var(--color-ink);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .cat-section__arrow:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .cat-section__arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 }
 

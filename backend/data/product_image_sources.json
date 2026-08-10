@@ -1,0 +1,50 @@
+{
+  "magnetic-bookmarks.jpeg": {
+    "label": "Open book — magnetic bookmark in use",
+    "source": "https://images.pexels.com/photos/256450/pexels-photo-256450.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "classic-bookmarks.jpeg": {
+    "label": "Stack of books — classic bookmarks",
+    "source": "https://images.pexels.com/photos/207673/pexels-photo-207673.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "birthday-cards.jpeg": {
+    "label": "Birthday cake and celebration",
+    "source": "https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "thank-you-cards.jpeg": {
+    "label": "Flower bouquet — thank you",
+    "source": "https://images.pexels.com/photos/207216/pexels-photo-207216.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "love-cards.jpeg": {
+    "label": "Heart — love and valentine cards",
+    "source": "https://images.pexels.com/photos/268533/pexels-photo-268533.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "sorry-cards.jpeg": {
+    "label": "Soft flowers — sympathy and sorry cards",
+    "source": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "hampers.jpeg": {
+    "label": "Gift basket hamper",
+    "source": "https://images.pexels.com/photos/264905/pexels-photo-264905.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "mini-hamper.jpeg": {
+    "label": "Small wrapped gift box",
+    "source": "https://images.pexels.com/photos/1303081/pexels-photo-1303081.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "fridge-magnets.jpeg": {
+    "label": "Kitchen fridge with magnets",
+    "source": "https://images.pexels.com/photos/4203114/pexels-photo-4203114.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "couple-fridge-magnets.jpeg": {
+    "label": "Polaroid photo prints",
+    "source": "https://images.pexels.com/photos/6132672/pexels-photo-6132672.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  },
+  "calendars.jpeg": {
+    "label": "Desk planner and calendar",
+    "source": "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=700&h=700&fit=crop&q=85"
+  },
+  "new-calendars.jpeg": {
+    "label": "Wall calendar on desk",
+    "source": "https://images.pexels.com/photos/5716030/pexels-photo-5716030.jpeg?auto=compress&cs=tinysrgb&w=700&h=700&fit=crop"
+  }
+}

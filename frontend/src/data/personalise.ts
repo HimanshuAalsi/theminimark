@@ -2,6 +2,12 @@ import type { ShopCategory } from '@/data/siteContent'
 
 /** Custom product studio — types, sample imagery, and pricing. */
 
+/**
+ * Storefront visibility for personalise promos/sections.
+ * false = hide homepage block + shop promos; /personalise route still works.
+ */
+export const PERSONALISE_STOREFRONT_VISIBLE = false
+
 export type PersonaliseType = 'bookmark' | 'calendar' | 'card' | 'magnet'
 
 export interface PersonaliseProduct {
@@ -19,10 +25,9 @@ export const PERSONALISE_PRODUCTS: PersonaliseProduct[] = [
   {
     id: 'bookmark',
     label: 'Custom magnetic bookmark',
-    shortLabel: 'Bookmarks',
-    blurb: 'Your photo on a slim fold-over magnetic clip.',
-    sampleImage:
-      'https://theminimark.com/wp-content/uploads/2026/03/sticker-book-diy-4-Magnetic-bookmarks-700x700.jpeg',
+    shortLabel: 'Custom bookmark',
+    blurb: 'Your photo and words on a slim fold-over magnetic clip — made to order.',
+    sampleImage: '/products/magnetic-bookmarks.jpeg',
     price: 449,
     compareAt: 549,
   },
@@ -32,7 +37,7 @@ export const PERSONALISE_PRODUCTS: PersonaliseProduct[] = [
     shortLabel: 'Calendars',
     blurb: 'Desk or wall layout with your picture each month.',
     sampleImage:
-      'https://theminimark.com/wp-content/uploads/2026/03/download-44-700x700.jpeg',
+      '/products/calendars.jpeg',
     price: 599,
     compareAt: 749,
   },
@@ -42,7 +47,7 @@ export const PERSONALISE_PRODUCTS: PersonaliseProduct[] = [
     shortLabel: 'Cards',
     blurb: 'Photo front, your message inside — any occasion.',
     sampleImage:
-      'https://theminimark.com/wp-content/uploads/2026/03/Panda-Pun-Birthday-Card-Have-a-panda-stic-Birthday-Panda-Birthday-Card-Birthday-Card-for-Friend-Birthday-Card-for-Nephew-Niece-700x700.jpeg',
+      '/products/birthday-cards.jpeg',
     price: 399,
     compareAt: 499,
   },
@@ -52,7 +57,7 @@ export const PERSONALISE_PRODUCTS: PersonaliseProduct[] = [
     shortLabel: 'Fridge magnets',
     blurb: 'Square photo magnet with a glossy finish.',
     sampleImage:
-      'https://theminimark.com/wp-content/uploads/2026/03/download-43-700x700.jpeg',
+      '/products/fridge-magnets.jpeg',
     price: 349,
     compareAt: 449,
   },
@@ -83,8 +88,20 @@ export function personaliseTypeForCategory(category: string): PersonaliseType | 
   return null
 }
 
+/** Shop category pages — custom product promo (bookmarks, cards, fridge magnets). */
 export function personalisePromoForCategory(category: string): PersonaliseProduct | null {
+  if (!PERSONALISE_STOREFRONT_VISIBLE) return null
   const type = personaliseTypeForCategory(category)
   if (!type) return null
   return personaliseProduct(type)
+}
+
+/** All product types supported in the personalise studio. */
+export function personaliseStudioLiveForCategory(_category: string): boolean {
+  return true
+}
+
+/** Home / marketing cards — bookmark customisation only. */
+export function bookmarkPersonaliseCard(): PersonaliseProduct {
+  return personaliseProduct('bookmark')
 }

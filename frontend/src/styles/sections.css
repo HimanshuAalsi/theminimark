@@ -1,0 +1,66 @@
+/*
+  Section & marketing cards — theme-safe surfaces (no hardcoded light greys).
+*/
+.home__cream,
+.hiw {
+  background: var(--tm-surface) !important;
+  border-color: var(--tm-border) !important;
+}
+
+[data-theme='dark'] .home__cream,
+[data-theme='dark'] .hiw {
+  background: var(--tm-page-2) !important;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .hiw {
+  border-top-color: var(--tm-border) !important;
+  border-bottom-color: var(--tm-border) !important;
+}
+
+.hiw__step,
+.pers-card,
+.trust {
+  background: var(--tm-surface-2) !important;
+  border-color: var(--tm-border) !important;
+}
+
+[data-theme='dark'] .hiw__step {
+  box-shadow: var(--tm-shadow-sm);
+}
+
+.hiw__step:hover,
+.pers-card:hover {
+  border-color: var(--tm-accent-soft) !important;
+}
+
+.pers-card__title {
+  color: var(--tm-ink) !important;
+}
+
+.pers-card__text {
+  color: var(--tm-ink-muted) !important;
+}
+
+.hiw__title {
+  color: var(--tm-ink) !important;
+}
+
+.hiw__text {
+  color: var(--tm-ink-muted) !important;
+}
+
+.hiw__icon-wrap {
+  background: var(--tm-page) !important;
+  border-color: var(--tm-border) !important;
+  color: var(--tm-accent) !important;
+}
+
+[data-theme='dark'] .cat-tile__cta {
+  background: var(--tm-surface-2) !important;
+  color: var(--tm-accent) !important;
+}
+
+[data-theme='dark'] .cat-tile__media {
+  background: var(--tm-page-2) !important;
+}

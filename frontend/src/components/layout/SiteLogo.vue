@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import logoSrc from '@/assets/Main Logo.webp'
+import { storeToRefs } from 'pinia'
+import { useHomePageStore } from '@/stores/homePage'
+import { useThemeStore } from '@/stores/theme'
+import logoFallback from '@/assets/main-logo.webp'
+import logoLight from '@/assets/logolight.png'
 
 withDefaults(
   defineProps<{
@@ -12,12 +17,20 @@ withDefaults(
     linked: false,
   }
 )
+
+const homePage = useHomePageStore()
+const theme = useThemeStore()
+const { logoSrc } = storeToRefs(homePage)
+
+const logo = computed(() =>
+  theme.isDark ? logoLight : logoSrc.value || logoFallback,
+)
 </script>
 
 <template>
   <RouterLink v-if="linked" to="/" class="site-logo-link">
     <img
-      :src="logoSrc"
+      :src="logo"
       alt="The Minimark — bookmarks and paper goods"
       class="site-logo"
       :class="`site-logo--${size}`"
@@ -28,7 +41,7 @@ withDefaults(
   </RouterLink>
   <img
     v-else
-    :src="logoSrc"
+    :src="logo"
     alt="The Minimark — bookmarks and paper goods"
     class="site-logo"
     :class="`site-logo--${size}`"

@@ -1,0 +1,196 @@
+/*
+  Global brand utilities — gradient accent + dark-mode-safe surfaces.
+*/
+
+/* Primary actions (gradient fill) */
+.ui-btn--primary,
+.pcard__add,
+.pcard__quick-add,
+.pcard__action--primary,
+.sticky-buy__btn,
+.pdp__cart-btn,
+.pdp__mobile-cart,
+.shop-toolbar__btn,
+.hero__btn--primary,
+.checkout__btn,
+.checkout__mobile-cart,
+.home__personalise-cta,
+.home__viewall-link,
+.hiw__cta,
+.pers-card__cta,
+.announce__link,
+.login__submit,
+.register__submit,
+.forgot__submit,
+.profile__save,
+.not-found__btn,
+.create-set__checkout,
+.cart-drawer__checkout,
+.cart__checkout,
+.cart__checkout-btn,
+.newsletter__btn,
+.sale-cta__btn,
+.app-tab__item--cart .app-tab__cart-wrap {
+  background: var(--tm-gradient) !important;
+  border-color: transparent !important;
+  color: var(--tm-on-accent) !important;
+  box-shadow: var(--tm-shadow-accent);
+}
+
+.ui-btn--primary:hover:not(:disabled),
+.pcard__add:hover,
+.pcard__quick-add:active,
+.pcard__action--primary:active,
+.sticky-buy__btn:hover:not(:disabled),
+.pdp__cart-btn:hover,
+.shop-toolbar__btn:hover,
+.hero__btn--primary:hover,
+.checkout__btn:hover,
+.cart-drawer__checkout:hover,
+.newsletter__btn:hover,
+.sale-cta__btn:hover,
+.home__viewall-link:hover,
+.home__personalise-cta:hover,
+.hiw__cta:hover,
+.pers-card__cta:hover {
+  background: var(--tm-gradient-hover) !important;
+}
+
+/* Soft gradient surfaces */
+.pcard__wish--on,
+.trust__item:hover,
+.trust__icon,
+.chip--on,
+.filter-sheet__chip--on {
+  background: var(--tm-gradient-soft) !important;
+  border-color: var(--tm-accent-b) !important;
+  color: var(--tm-accent) !important;
+}
+
+/* Glass chrome */
+.head,
+.app-tab,
+.sticky-buy,
+.cart-drawer__panel,
+.search-panel__sheet {
+  background: var(--tm-glass) !important;
+  border-color: var(--tm-glass-border);
+}
+
+[data-theme='dark'] .head,
+[data-theme='dark'] .app-tab,
+[data-theme='dark'] .sticky-buy,
+[data-theme='dark'] .cart-drawer__panel {
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Announcement uses brand gradient */
+.announce {
+  background: var(--tm-gradient-hero) !important;
+  color: var(--tm-on-accent);
+}
+
+/* Milestone / progress accent */
+.cart-milestone__fill,
+.cart-milestone__dot--done {
+  background: var(--tm-gradient) !important;
+}
+
+/* Gradient text for eyebrows */
+.section-eyebrow,
+.pdp__eyebrow,
+.pcard__cat,
+.wishlist__eyebrow,
+.checkout__eyebrow {
+  background: var(--tm-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+[data-theme='dark'] .section-eyebrow,
+[data-theme='dark'] .pdp__eyebrow,
+[data-theme='dark'] .pcard__cat {
+  filter: brightness(1.15);
+}
+
+/* Links */
+a:hover {
+  color: var(--tm-accent-hover);
+}
+
+:focus-visible {
+  outline-color: var(--tm-accent-b);
+}
+
+::selection {
+  background: var(--tm-accent-soft);
+  color: var(--tm-ink);
+}
+
+/* Inputs in dark mode */
+input,
+select,
+textarea {
+  background-color: var(--tm-surface-2);
+  color: var(--tm-ink);
+  border-color: var(--tm-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--tm-ink-faint);
+}
+
+/* Cards & panels */
+.pcard,
+.pdp__buy-card,
+.pdp__panel,
+.ui-empty,
+.checkout__summary,
+.cart-drawer__panel {
+  background: var(--tm-surface-2);
+  border-color: var(--tm-border);
+}
+
+[data-theme='dark'] .pcard__media,
+[data-theme='dark'] .pgal__stage {
+  background: var(--tm-page-2);
+}
+
+/* Badges on images */
+.pcard__wish,
+.pcard__photos,
+.pgal__thumb-btn {
+  background: var(--tm-surface-2) !important;
+  color: var(--tm-ink-muted);
+}
+
+/* Sale badge stays solid for contrast */
+.pcard__sale,
+.pdp__badge {
+  background: var(--tm-sale) !important;
+  -webkit-text-fill-color: #fff;
+  color: #fff !important;
+}
+
+/* Hero soft button */
+.hero__btn--soft {
+  background: var(--tm-surface-2) !important;
+  color: var(--tm-ink) !important;
+  border: 1px solid var(--tm-border);
+}
+
+/* Theme transition */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 0.35s var(--tm-ease),
+    border-color 0.35s var(--tm-ease),
+    color 0.25s var(--tm-ease),
+    box-shadow 0.35s var(--tm-ease) !important;
+  transition-property: background-color, border-color, color, box-shadow, fill, stroke !important;
+}

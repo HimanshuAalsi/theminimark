@@ -6,6 +6,43 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const imagePool = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../data/product_image_pool.json'), 'utf8'),
+)
+const imagesByCategory = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../data/product_images_by_category.json'), 'utf8'),
+)
+
+function hashString(key) {
+  let hash = 0
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) | 0
+  return Math.abs(hash)
+}
+
+function pickFromPool(pool, key) {
+  const list = pool.length ? pool : imagePool
+  return list[hashString(key) % list.length]
+}
+
+/** Category-aware image: bookmarks/cards/etc. get matching photos. */
+function pickImageForProduct(category, baseName, variant, slug) {
+  const key = `${slug}-${variant}`
+  const pool = imagesByCategory[category]
+  if (!pool?.length) return pickFromPool(imagePool, key)
+
+  if (category === 'bookmarks') {
+    const magnetic = /magnetic|clip|fold-over/i.test(baseName)
+    if (magnetic) return '/products/magnetic-bookmarks.jpeg'
+    return '/products/classic-bookmarks.jpeg'
+  }
+
+  if (category === 'cards') {
+    const cardImages = imagesByCategory.cards
+    return cardImages[variant % cardImages.length]
+  }
+
+  return pickFromPool(pool, key)
+}
 
 function esc(s) {
   return String(s).replace(/\\/g, '\\\\').replace(/'/g, "''")
@@ -173,8 +210,7 @@ for (const cat of categories) {
     const slug = slugify(`${cat}-${baseName}-${variant}-${id}`)
     const price = Number((6.5 + (i * 1.7) + (cat.length * 0.3)).toFixed(2))
     const compare = i % 3 === 0 ? Number((price + 8 + (i % 5)).toFixed(2)) : null
-    const seed = esc(slug).replace(/[^a-z0-9-]/gi, 'x').slice(0, 60)
-    const image = `https://picsum.photos/seed/${seed}/700/700`
+    const image = pickImageForProduct(cat, baseName, variant, slug)
     const hb = cat === 'bookmarks' && i < 3 ? 1 : cat === 'cards' && i < 2 ? 1 : 0
     const hs = (i + sort) % 7 === 0 || (i + sort) % 11 === 0 ? 1 : 0
 

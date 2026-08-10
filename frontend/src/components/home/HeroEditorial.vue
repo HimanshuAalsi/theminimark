@@ -2,9 +2,18 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { heroSlides } from '@/data/siteContent'
+import { storeToRefs } from 'pinia'
+import { homePageImageSrc, useHomePageStore } from '@/stores/homePage'
 
-const slides = heroSlides
+const homePage = useHomePageStore()
+const { heroSlides } = storeToRefs(homePage)
+
+const slides = computed(() =>
+  heroSlides.value.map((s) => ({
+    ...s,
+    image: homePageImageSrc(s.image),
+  })),
+)
 const active = ref(0)
 const reduceMotion = ref(false)
 const isPaused = ref(false)
@@ -12,20 +21,20 @@ let autoplayTimer: ReturnType<typeof setInterval> | null = null
 const AUTOPLAY_MS = 7000
 
 function go(delta: number) {
-  const n = slides.length
+  const n = slides.value.length
   active.value = (active.value + delta + n) % n
 }
 
 function goTo(i: number) {
-  const n = slides.length
+  const n = slides.value.length
   active.value = ((i % n) + n) % n
 }
 
-const current = computed(() => slides[active.value])
+const current = computed(() => slides.value[active.value])
 
 function startAutoplay() {
   stopAutoplay()
-  if (reduceMotion.value || slides.length <= 1) return
+  if (reduceMotion.value || slides.value.length <= 1) return
   autoplayTimer = setInterval(() => {
     if (!isPaused.value && document.visibilityState === 'visible') go(1)
   }, AUTOPLAY_MS)
@@ -107,9 +116,6 @@ onUnmounted(() => {
                   <RouterLink class="hero__btn hero__btn--primary" :to="current.ctaPrimary.to">
                     {{ current.ctaPrimary.label }}
                     <ArrowRight :size="17" :stroke-width="2.25" aria-hidden="true" />
-                  </RouterLink>
-                  <RouterLink class="hero__btn hero__btn--soft" :to="current.ctaSecondary.to">
-                    {{ current.ctaSecondary.label }}
                   </RouterLink>
                 </div>
               </div>
@@ -268,16 +274,11 @@ onUnmounted(() => {
 }
 
 .hero__btn--primary {
-  background: var(--color-accent);
-  color: #fff !important;
   border: 2px solid transparent;
-  box-shadow: 0 4px 18px rgba(45, 92, 82, 0.22);
 }
 
 .hero__btn--primary:hover {
-  background: var(--color-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(45, 92, 82, 0.28);
 }
 
 .hero__btn--soft {
@@ -375,6 +376,24 @@ onUnmounted(() => {
   background: linear-gradient(135deg, var(--color-accent-soft), transparent);
   pointer-events: none;
   z-index: -1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero__frame-accent {
+    animation: hero-accent-float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes hero-accent-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-6px, -8px);
+    opacity: 0.75;
+  }
 }
 
 .hero__controls {

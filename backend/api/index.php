@@ -27,8 +27,54 @@ try {
         exit;
     }
 
+    if (count($segments) >= 2 && $segments[0] === 'v1' && $segments[1] === 'uploads') {
+        tm_uploads_serve($segments);
+        exit;
+    }
+
+    if (count($segments) >= 2 && $segments[0] === 'v1' && $segments[1] === 'admin') {
+        if (tm_admin_dispatch($segments, $method, tm_auth_bearer_token())) {
+            exit;
+        }
+    }
+
+    if ($segments === ['v1', 'categories'] && $method === 'GET') {
+        $pdo = tm_db();
+        if (function_exists('tm_admin_categories_list')) {
+            $all = tm_admin_categories_list($pdo)['items'];
+            $items = array_values(array_filter($all, static fn ($c) => !empty($c['isActive'])));
+            if (function_exists('tm_categories_with_subcategories')) {
+                $items = tm_categories_with_subcategories($pdo, $items);
+            }
+            tm_json(['items' => $items]);
+            exit;
+        }
+        tm_json(['items' => []]);
+        exit;
+    }
+
+    if ($segments === ['v1', 'site', 'free-gifts'] && $method === 'GET') {
+        tm_json(tm_free_gifts_public(tm_db()));
+        exit;
+    }
+
+    if ($segments === ['v1', 'site', 'home'] && $method === 'GET') {
+        tm_json(tm_home_page_public());
+        exit;
+    }
+
     if ($segments === ['v1', 'site'] && $method === 'GET') {
         tm_json(tm_site_payload());
+        exit;
+    }
+
+    if ($segments === ['v1', 'blog'] && $method === 'GET') {
+        tm_json(['ok' => true, ...tm_blog_list_public(tm_db(), $_GET)]);
+        exit;
+    }
+    if (count($segments) === 3 && $segments[0] === 'v1' && $segments[1] === 'blog' && $method === 'GET') {
+        $post = tm_blog_by_slug(tm_db(), $segments[2]);
+        tm_json($post ? ['ok' => true, 'post' => $post] : ['message' => 'Not found'], $post ? 200 : 404);
         exit;
     }
 
@@ -36,13 +82,14 @@ try {
         $pdo = tm_db();
         $filters = [
             'category' => $_GET['category'] ?? null,
+            'subcategory' => $_GET['subcategory'] ?? null,
             'q' => $_GET['q'] ?? null,
             'sort' => $_GET['sort'] ?? null,
             'home_bestseller' => isset($_GET['home_bestseller']) ? (string) $_GET['home_bestseller'] : null,
             'home_secondary' => isset($_GET['home_secondary']) ? (string) $_GET['home_secondary'] : null,
         ];
         $rows = tm_products_query($pdo, $filters);
-        $items = tm_products_public_rows($rows);
+        $items = tm_products_public_rows($rows, $pdo);
         tm_json(['items' => $items, 'meta' => ['count' => count($items)]]);
         exit;
     }
@@ -54,7 +101,18 @@ try {
             tm_json(['message' => 'Product not found'], 404);
             exit;
         }
-        tm_json(tm_product_public($row));
+        tm_json(tm_product_public($row, tm_db()));
+        exit;
+    }
+
+    if ($segments === ['v1', 'personalise', 'upload'] && $method === 'POST') {
+        $file = $_FILES['file'] ?? $_FILES['image'] ?? null;
+        if (!is_array($file)) {
+            tm_json(['ok' => false, 'message' => 'Missing file field (use "file")'], 400);
+            exit;
+        }
+        $result = tm_upload_save_image($file, 'personalise', 'drafts');
+        tm_json($result, $result['ok'] ? 201 : 400);
         exit;
     }
 
@@ -74,8 +132,29 @@ try {
         $currency = isset($body['currency']) ? (string) $body['currency'] : 'USD';
         $lines = isset($body['lines']) && is_array($body['lines']) ? $body['lines'] : [];
         $notes = isset($body['notes']) ? (string) $body['notes'] : null;
-        $result = tm_order_create(tm_db(), $email, $name, $currency, $lines, $notes);
+        $freeGift = isset($body['freeGift']) && is_array($body['freeGift']) ? $body['freeGift'] : null;
+        $couponCode = isset($body['couponCode']) ? (string) $body['couponCode'] : null;
+        $shipping = tm_order_parse_shipping_from_body($body);
+        $result = tm_order_create(tm_db(), $email, $name, $currency, $lines, $notes, $freeGift, $couponCode, $shipping);
         tm_json($result, $result['ok'] ? 201 : 400);
+        exit;
+    }
+
+    if ($segments === ['v1', 'orders', 'track'] && $method === 'GET') {
+        $orderId = isset($_GET['orderId']) ? (int) $_GET['orderId'] : 0;
+        $email = isset($_GET['email']) ? (string) $_GET['email'] : '';
+        $result = tm_order_track_public(tm_db(), $orderId, $email);
+        tm_json($result, $result['ok'] ? 200 : 404);
+        exit;
+    }
+
+    if ($segments === ['v1', 'coupons', 'validate'] && $method === 'POST') {
+        $body = tm_read_json_body();
+        $code = isset($body['code']) ? (string) $body['code'] : '';
+        $email = isset($body['customerEmail']) ? (string) $body['customerEmail'] : '';
+        $itemsSubtotal = isset($body['itemsSubtotal']) ? (float) $body['itemsSubtotal'] : 0;
+        $result = tm_coupon_validate(tm_db(), $code, $email, $itemsSubtotal);
+        tm_json($result, $result['ok'] ? 200 : 400);
         exit;
     }
 
@@ -94,7 +173,10 @@ try {
         $name = isset($body['customerName']) ? (string) $body['customerName'] : null;
         $lines = isset($body['lines']) && is_array($body['lines']) ? $body['lines'] : [];
         $notes = isset($body['notes']) ? (string) $body['notes'] : null;
-        $result = tm_payment_razorpay_start_checkout(tm_db(), $email, $name, $lines, $notes);
+        $freeGift = isset($body['freeGift']) && is_array($body['freeGift']) ? $body['freeGift'] : null;
+        $couponCode = isset($body['couponCode']) ? (string) $body['couponCode'] : null;
+        $shipping = tm_order_parse_shipping_from_body($body);
+        $result = tm_payment_razorpay_start_checkout(tm_db(), $email, $name, $lines, $notes, $freeGift, $couponCode, $shipping);
         tm_json($result, $result['ok'] ? 201 : 400);
         exit;
     }
@@ -243,13 +325,28 @@ try {
 
     tm_json(['message' => 'Not found', 'path' => $path], 404);
 } catch (PDOException $e) {
+    $hint = null;
+    $message = 'Database unavailable (MySQL did not accept the connection). Match `db.host`, `db.port`, `db.user`, `db.pass`, and `db.name` in `backend/api/config.local.php` to a running server — see `backend/README.md` (Docker on host: port 3307, password root; local install: often port 3306).';
+    if (str_contains($e->getMessage(), 'Unknown column')) {
+        $message = 'Database schema is out of date. Import backend/sql/migration_admin_advanced.sql in phpMyAdmin, then retry.';
+    } elseif (getenv('TM_DEBUG') === '1') {
+        $hint = $e->getMessage();
+    }
     tm_json([
-        'message' => 'Database unavailable (MySQL did not accept the connection). Match `db.host`, `db.port`, `db.user`, `db.pass`, and `db.name` in `backend/api/config.local.php` to a running server — see `backend/README.md` (Docker on host: port 3307, password root; local install: often port 3306).',
-        'error' => getenv('TM_DEBUG') === '1' ? $e->getMessage() : null,
+        'message' => $message,
+        'error' => $hint,
     ], 503);
 } catch (Throwable $e) {
+    $hint = null;
+    if (getenv('TM_DEBUG') === '1') {
+        $hint = $e->getMessage();
+    } elseif (str_contains($e->getMessage(), 'finfo')) {
+        $hint = 'Enable PHP extension fileinfo (or gd) for image uploads.';
+    } elseif (str_contains($e->getMessage(), 'ZipArchive')) {
+        $hint = 'Enable PHP zip extension for bulk image ZIP uploads.';
+    }
     tm_json([
-        'message' => 'Server error',
-        'error' => getenv('TM_DEBUG') === '1' ? $e->getMessage() : null,
+        'message' => $hint ?? 'Server error',
+        'error' => $hint,
     ], 500);
 }

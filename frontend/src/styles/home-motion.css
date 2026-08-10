@@ -1,0 +1,44 @@
+/* Landing page — AOS polish (animations run via data-aos; init in HomeView) */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Section header accent line after AOS reveals the block */
+  .section-head .section-eyebrow {
+    position: relative;
+    display: inline-block;
+  }
+
+  .section-head.aos-animate .section-eyebrow::after,
+  .section-head[data-aos].aos-animate .section-eyebrow::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -0.35rem;
+    width: 100%;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--tm-gradient, linear-gradient(90deg, var(--tm-accent-a), var(--tm-accent-c)));
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: home-eyebrow-line 0.65s var(--tm-ease, cubic-bezier(0.22, 1, 0.36, 1)) 0.12s forwards;
+  }
+
+  @keyframes home-eyebrow-line {
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Category tiles — subtle scale once AOS fires */
+  .cat-tile.aos-animate {
+    animation: home-tile-in 0.55s var(--tm-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
+  @keyframes home-tile-in {
+    from {
+      transform: scale(0.97);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+}

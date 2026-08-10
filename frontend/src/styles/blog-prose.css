@@ -1,0 +1,83 @@
+/* Shared blog content layout — editor preview + public article */
+
+.blog-prose .blog-layout,
+.blog-editor__body .ProseMirror .blog-layout {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-accent, #2d5c52) 35%, transparent);
+  background: color-mix(in srgb, var(--color-accent-soft, #e8f0ee) 40%, transparent);
+}
+
+.blog-prose .blog-layout[data-cols='1'] .blog-layout__col,
+.blog-editor__body .ProseMirror .blog-layout[data-cols='1'] .blog-layout__col {
+  grid-column: span 12;
+}
+
+.blog-prose .blog-layout[data-cols='2'] .blog-layout__col,
+.blog-editor__body .ProseMirror .blog-layout[data-cols='2'] .blog-layout__col {
+  grid-column: span 6;
+}
+
+.blog-prose .blog-layout[data-cols='3'] .blog-layout__col,
+.blog-editor__body .ProseMirror .blog-layout[data-cols='3'] .blog-layout__col {
+  grid-column: span 4;
+}
+
+.blog-prose .blog-layout[data-cols='4'] .blog-layout__col,
+.blog-editor__body .ProseMirror .blog-layout[data-cols='4'] .blog-layout__col {
+  grid-column: span 3;
+}
+
+@media (max-width: 768px) {
+  .blog-prose .blog-layout[data-cols='2'] .blog-layout__col,
+  .blog-prose .blog-layout[data-cols='3'] .blog-layout__col,
+  .blog-prose .blog-layout[data-cols='4'] .blog-layout__col,
+  .blog-editor__body .ProseMirror .blog-layout[data-cols='2'] .blog-layout__col,
+  .blog-editor__body .ProseMirror .blog-layout[data-cols='3'] .blog-layout__col,
+  .blog-editor__body .ProseMirror .blog-layout[data-cols='4'] .blog-layout__col {
+    grid-column: span 12;
+  }
+}
+
+.blog-prose .blog-layout__col > *:first-child,
+.blog-editor__body .ProseMirror .blog-layout__col > *:first-child {
+  margin-top: 0;
+}
+
+.blog-prose .blog-img,
+.blog-editor__body .ProseMirror .blog-img {
+  display: block;
+  height: auto;
+  border-radius: 12px;
+  margin: 1rem auto;
+  max-width: 100%;
+}
+
+.blog-prose .blog-img--sm,
+.blog-editor__body .ProseMirror .blog-img--sm {
+  width: min(100%, 280px);
+}
+
+.blog-prose .blog-img--md,
+.blog-editor__body .ProseMirror .blog-img--md {
+  width: min(100%, 480px);
+}
+
+.blog-prose .blog-img--lg,
+.blog-editor__body .ProseMirror .blog-img--lg {
+  width: min(100%, 720px);
+}
+
+.blog-prose .blog-img--full,
+.blog-editor__body .ProseMirror .blog-img--full {
+  width: 100%;
+}
+
+.blog-prose .blog-img--full,
+.blog-editor__body .ProseMirror .blog-img--full.blog-img--full {
+  border-radius: 14px;
+}

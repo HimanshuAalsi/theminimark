@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   server: {
+    /** Default dev app URL: http://localhost:5174 (API is proxied /api → PHP :8888). */
+    port: 5174,
+    strictPort: false,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8888',

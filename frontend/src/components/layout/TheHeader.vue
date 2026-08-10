@@ -5,11 +5,17 @@ import { useRoute, useRouter } from 'vue-router'
 import { ChevronDown, CircleUser, Heart, LogIn, Menu, Search, ShoppingBag, X } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import SiteLogo from '@/components/layout/SiteLogo.vue'
+import ThemeToggle from '@/components/layout/ThemeToggle.vue'
 import { HEADER_NAV } from '@/data/navMenu'
+import { useSearchUiStore } from '@/stores/searchUi'
 import { useCartStore } from '@/stores/cart'
 import { useCartUiStore } from '@/stores/cartUi'
 import { useAuthStore } from '@/stores/auth'
 import { useWishlistStore } from '@/stores/wishlist'
+
+const props = defineProps<{
+  appMode?: boolean
+}>()
 
 const cart = useCartStore()
 const cartUi = useCartUiStore()
@@ -18,6 +24,7 @@ const auth = useAuthStore()
 const { isAuthenticated } = storeToRefs(auth)
 const route = useRoute()
 const router = useRouter()
+const searchUi = useSearchUiStore()
 const badge = computed(() => cart.totalQuantity)
 const wishlistBadge = computed(() => wishlist.count)
 const menuOpen = ref(false)
@@ -87,6 +94,11 @@ function onSearch(e: Event) {
 }
 
 async function openSearch() {
+  if (props.appMode) {
+    searchUi.open(route.path === '/shop' ? String(route.query.q ?? '') : '')
+    menuOpen.value = false
+    return
+  }
   searchOpen.value = true
   await nextTick()
   searchInputRef.value?.focus()
@@ -116,7 +128,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="head">
+  <header class="head" :class="{ 'head--app': props.appMode }">
     <div class="head__bar tm-container">
       <button
         type="button"
@@ -177,13 +189,29 @@ onUnmounted(() => {
         </ul>
       </nav>
 
-      <div class="head__tools">
-        <RouterLink to="/wishlist" class="head__icon-link head__wishlist" aria-label="Wishlist" @click="menuOpen = false">
+      <div class="head__tools" :class="{ 'head__tools--app': props.appMode }">
+        <ThemeToggle />
+        <button
+          v-if="props.appMode"
+          type="button"
+          class="head__icon-link"
+          aria-label="Search"
+          @click="openSearch"
+        >
+          <Search :size="21" :stroke-width="2" />
+        </button>
+        <RouterLink
+          v-if="!props.appMode"
+          to="/wishlist"
+          class="head__icon-link head__wishlist"
+          aria-label="Wishlist"
+          @click="menuOpen = false"
+        >
           <Heart :size="21" :stroke-width="2" />
           <span v-if="wishlistBadge > 0" class="head__badge head__badge--wish">{{ wishlistBadge }}</span>
         </RouterLink>
         <RouterLink
-          v-if="!isAuthenticated"
+          v-if="!props.appMode && !isAuthenticated"
           to="/login"
           class="head__icon-link"
           aria-label="Sign in"
@@ -192,7 +220,7 @@ onUnmounted(() => {
           <LogIn :size="21" :stroke-width="2" />
         </RouterLink>
         <RouterLink
-          v-else
+          v-if="!props.appMode && isAuthenticated"
           to="/account"
           class="head__icon-link"
           aria-label="Account"
@@ -201,6 +229,7 @@ onUnmounted(() => {
           <CircleUser :size="21" :stroke-width="2" />
         </RouterLink>
         <button
+          v-if="!props.appMode"
           type="button"
           class="head__cart head__icon-link"
           aria-label="Open cart"
@@ -211,6 +240,7 @@ onUnmounted(() => {
         </button>
 
         <div
+          v-if="!props.appMode"
           ref="searchWrapRef"
           class="head__search-wrap"
           :class="{ 'head__search-wrap--open': searchOpen }"
@@ -306,11 +336,32 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.head--app .head__bar {
+  min-height: var(--header-h);
+  padding-top: max(0.35rem, env(safe-area-inset-top));
+  padding-bottom: 0.35rem;
+}
+
+.head--app .head__brand {
+  justify-content: center;
+}
+
+.head__tools--app {
+  min-width: 2.5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1023px) {
+  .head--app .head__search {
+    width: min(12rem, 52vw);
+  }
+}
+
 .head {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 252, 248, 0.88);
+  background: var(--tm-glass);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
   border-bottom: 1px solid var(--color-border);
@@ -545,10 +596,21 @@ onUnmounted(() => {
   margin: 0;
   padding: 0 0.15rem;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.15rem 0.75rem;
   justify-content: flex-end;
   align-items: center;
+}
+
+@media (min-width: 1024px) and (max-width: 1320px) {
+  .head__menu-link {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.25rem;
+  }
+
+  .head__menu {
+    gap: 0.1rem 0.45rem;
+  }
 }
 
 .head__menu-item {
@@ -698,8 +760,8 @@ onUnmounted(() => {
 }
 
 .head__badge--wish {
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
-  box-shadow: 0 2px 8px rgba(45, 92, 82, 0.35);
+  background: var(--tm-gradient);
+  box-shadow: var(--tm-shadow-accent);
 }
 
 .head__badge {

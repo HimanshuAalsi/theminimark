@@ -1,0 +1,3 @@
+id,slug,name,description,price_inr,compare_at_inr,category_slug,keywords,image_urls,home_bestseller,home_secondary,sort_order,is_active,sku,stock_quantity,seo_title,seo_description
+SAMPLE-001,sample-magnetic-bookmark,Sample Magnetic Bookmark,Short description for shop page.,399,499,bookmarks,"magnetic bookmark,gift,reading","/uploads/products/bookmarks/sample-1.jpg|/uploads/products/bookmarks/sample-2.jpg",0,1,100,1,TM-SAMPLE-001,50,Magnetic Bookmark Gift,Handmade magnetic bookmark for book lovers.
+SAMPLE-002,sample-birthday-card,Sample Birthday Card,Single greeting card with envelope.,349,,cards,"birthday,card,greeting","https://example.com/images/card-front.jpg|https://example.com/images/card-inside.jpg",0,0,110,1,TM-SAMPLE-002,25,,

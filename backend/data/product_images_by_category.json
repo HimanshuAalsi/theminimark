@@ -1,0 +1,24 @@
+{
+  "bookmarks": [
+    "/products/magnetic-bookmarks.jpeg",
+    "/products/classic-bookmarks.jpeg"
+  ],
+  "cards": [
+    "/products/birthday-cards.jpeg",
+    "/products/thank-you-cards.jpeg",
+    "/products/love-cards.jpeg",
+    "/products/sorry-cards.jpeg"
+  ],
+  "calendars": [
+    "/products/calendars.jpeg",
+    "/products/new-calendars.jpeg"
+  ],
+  "magnets": [
+    "/products/fridge-magnets.jpeg",
+    "/products/couple-fridge-magnets.jpeg"
+  ],
+  "hampers": [
+    "/products/hampers.jpeg",
+    "/products/mini-hamper.jpeg"
+  ]
+}

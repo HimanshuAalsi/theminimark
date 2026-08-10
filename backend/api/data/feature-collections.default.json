@@ -1,0 +1,59 @@
+{
+  "collections": [
+    {
+      "id": "fc-bookmarks-magnetic",
+      "name": "Magnetic bookmarks",
+      "category": "bookmarks",
+      "features": [
+        "Fold-over magnetic clip stays put",
+        "Glossy, crease-resistant finish",
+        "Ultra slim — barely adds bulk",
+        "Perfect for novels & textbooks"
+      ]
+    },
+    {
+      "id": "fc-cards-standard",
+      "name": "Greeting cards",
+      "category": "cards",
+      "features": [
+        "Rich paper stock with envelope-ready size",
+        "Blank inside for your message",
+        "Vibrant print on the front",
+        "Ideal for birthdays & thank-yous"
+      ]
+    },
+    {
+      "id": "fc-calendars-standard",
+      "name": "Calendars",
+      "category": "calendars",
+      "features": [
+        "Clear month-at-a-glance layout",
+        "Desk or wall friendly sizing",
+        "Quality paper that lays flat",
+        "A calm companion for your desk"
+      ]
+    },
+    {
+      "id": "fc-magnets-standard",
+      "name": "Fridge magnets",
+      "category": "magnets",
+      "features": [
+        "Strong hold on fridge or locker",
+        "Glossy photo-ready surface",
+        "Lightweight & gift-friendly",
+        "Pairs well with bookmarks & cards"
+      ]
+    },
+    {
+      "id": "fc-hampers-standard",
+      "name": "Gift hampers",
+      "category": "hampers",
+      "features": [
+        "Curated mix of reader favourites",
+        "Gift-ready packaging",
+        "Thoughtful picks in one box",
+        "Easy to send to someone special"
+      ]
+    }
+  ]
+}

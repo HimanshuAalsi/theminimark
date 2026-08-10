@@ -348,7 +348,7 @@ async function doLogout() {
   font-family: inherit;
   cursor: pointer;
   align-self: flex-start;
-  background: linear-gradient(135deg, var(--color-accent), #1a4a42);
+  background: var(--tm-gradient);
   color: #fff;
   box-shadow: 0 4px 16px rgba(45, 92, 82, 0.28);
 }

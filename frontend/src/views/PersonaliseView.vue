@@ -1,23 +1,32 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import PersonaliseCalendarStudio from '@/components/personalise/PersonaliseCalendarStudio.vue'
+import PersonaliseFrontBackStudio from '@/components/personalise/PersonaliseFrontBackStudio.vue'
+import { defaultPhotoTransform, type PhotoTransform } from '@/composables/usePhotoEditor'
+import PersonaliseMagnetStudio from '@/components/personalise/PersonaliseMagnetStudio.vue'
+import PersonaliseOrderPanel from '@/components/personalise/PersonaliseOrderPanel.vue'
+import PersonaliseTypeNav from '@/components/personalise/PersonaliseTypeNav.vue'
 import {
-  ImagePlus,
-  Loader2,
-  RotateCcw,
-  ShoppingBag,
-  Sparkles,
-  Upload,
-  ZoomIn,
-} from 'lucide-vue-next'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import CustomProductPreview from '@/components/personalise/CustomProductPreview.vue'
+  BOOKMARK_IMAGE_HINT,
+  BOOKMARK_POLICY_NOTE,
+  BOOKMARK_TEXT_MAX_WORDS,
+  bookmarkTextValid,
+  countWords,
+} from '@/data/bookmarkCustom'
+import { personaliseProduct, type PersonaliseType } from '@/data/personalise'
+import { defaultPersonaliseOptions, personaliseOptionsSummary } from '@/data/personaliseOptions'
 import {
-  isPersonaliseType,
-  PERSONALISE_PRODUCTS,
-  personaliseProduct,
-  type PersonaliseType,
-} from '@/data/personalise'
-import { formatCurrency } from '@/lib/currency'
+  BOOKMARK_ACCENT_COLORS,
+  calendarDesignById,
+  calendarMonthKey,
+  magnetStripFrameByIndex,
+  magnetStripSlotKey,
+  typeFromQuery,
+  CALENDAR_MONTHS,
+} from '@/data/personaliseStudio'
+import { usePersonaliseUpload } from '@/composables/usePersonaliseUpload'
+import { uploadPersonalisePhoto } from '@/lib/personaliseUpload'
 import { useCartStore } from '@/stores/cart'
 import { useCartUiStore } from '@/stores/cartUi'
 
@@ -26,106 +35,293 @@ const router = useRouter()
 const cart = useCartStore()
 const cartUi = useCartUiStore()
 
-const activeType = ref<PersonaliseType>('bookmark')
-const photoUrl = ref<string | null>(null)
-const zoom = ref(1)
-const posX = ref(50)
-const posY = ref(50)
-const dragOver = ref(false)
-const uploadError = ref('')
+const activeType = ref<PersonaliseType>(typeFromQuery(route.query.type))
+const options = ref(defaultPersonaliseOptions(activeType.value))
+const accentColor = ref(BOOKMARK_ACCENT_COLORS.find((c) => c.id === 'pink')?.hex ?? '#f4b8d0')
+const frontColor = ref('#4a1942')
+const frontTransform = ref<PhotoTransform>(defaultPhotoTransform())
+const backTransform = ref<PhotoTransform>(defaultPhotoTransform())
+const activeFrame = ref(0)
+const selectedDesignId = ref('d1')
+
+const frontUpload = usePersonaliseUpload()
+const backUpload = usePersonaliseUpload()
+
+const stripSlotPhotos = ref<Record<string, string | null>>({})
+const stripSlotPaths = ref<Record<string, string | null>>({})
+const stripSlotTexts = ref<Record<string, string>>({})
+
+const monthPhotos = ref<Record<string, string | null>>({})
+const monthPaths = ref<Record<string, string | null>>({})
+
+const uploadingSlot = ref<string | null>(null)
+const uploadingMonth = ref<string | null>(null)
+
+const frontPreview = computed(() => frontUpload.previewUrl.value)
+const backPreview = computed(() => backUpload.previewUrl.value)
+const frontUploading = computed(() => frontUpload.uploading.value)
+const backUploading = computed(() => backUpload.uploading.value)
+const uploadErrorMsg = computed(
+  () => formError.value || frontUpload.error.value || backUpload.error.value,
+)
+
+const formError = ref('')
 const adding = ref(false)
 const added = ref(false)
 
-const fmt = formatCurrency
-const activeProduct = computed(() => personaliseProduct(activeType.value))
-const hasPhoto = computed(() => Boolean(photoUrl.value))
-
-function readTypeFromRoute() {
-  const q = route.query.type
-  if (typeof q === 'string' && isPersonaliseType(q)) {
-    activeType.value = q
-  }
-}
-
-readTypeFromRoute()
-
 watch(
   () => route.query.type,
-  () => readTypeFromRoute()
+  (t) => {
+    activeType.value = typeFromQuery(t)
+  },
 )
 
-watch(activeType, (type) => {
-  if (route.query.type !== type) {
-    router.replace({ query: { ...route.query, type } })
-  }
+watch(activeType, (t) => {
+  options.value = defaultPersonaliseOptions(t)
+  formError.value = ''
+  added.value = false
+  router.replace({ query: { ...route.query, type: t === 'bookmark' ? undefined : t } })
 })
 
-function revokePhoto() {
-  if (photoUrl.value?.startsWith('blob:')) {
-    URL.revokeObjectURL(photoUrl.value)
+const product = computed(() => personaliseProduct(activeType.value))
+
+const calendarDesign = computed(() => calendarDesignById(selectedDesignId.value))
+
+const magnetFrame = computed(() => magnetStripFrameByIndex(activeFrame.value))
+
+const effectivePrice = computed(() => {
+  if (activeType.value === 'magnet') return magnetFrame.value.price
+  if (activeType.value === 'calendar') return calendarDesign.value.price
+  return product.value.price
+})
+
+const effectiveCompareAt = computed(() => {
+  if (activeType.value === 'magnet') return magnetFrame.value.compareAt
+  if (activeType.value === 'calendar') return calendarDesign.value.compareAt
+  return product.value.compareAt
+})
+
+const orderDetails = computed(() => {
+  const lines = personaliseOptionsSummary(activeType.value, options.value)
+  if (activeType.value === 'bookmark' || activeType.value === 'card') {
+    lines.unshift(`Front: ${frontColor.value}`)
+    lines.unshift(`Back: ${accentColor.value}`)
+    if (backUpload.previewUrl.value) lines.push('Back photo uploaded')
+  }
+  if (activeType.value === 'magnet') {
+    lines.unshift(`${magnetFrame.value.label} · magnetic photo strip`)
+  }
+  if (activeType.value === 'calendar') {
+    lines.unshift(calendarDesign.value.label)
+  }
+  return lines
+})
+
+const wordCount = computed(() => countWords(options.value.customText ?? ''))
+const textOverLimit = computed(() => wordCount.value > BOOKMARK_TEXT_MAX_WORDS)
+
+const canAdd = computed(() => {
+  if (activeType.value === 'bookmark' || activeType.value === 'card') {
+    return frontUpload.ready() && !textOverLimit.value
+  }
+  if (activeType.value === 'magnet') {
+    const frame = magnetFrame.value
+    return frame.slots.every((slot, si) => {
+      if (slot.type !== 'photo') return true
+      return Boolean(stripSlotPaths.value[magnetStripSlotKey(activeFrame.value, si)])
+    })
+  }
+  if (activeType.value === 'calendar') {
+    return CALENDAR_MONTHS.every((_, mi) =>
+      Boolean(monthPaths.value[calendarMonthKey(selectedDesignId.value, mi)]),
+    )
+  }
+  return false
+})
+
+async function handleFrontUpload(file: File) {
+  formError.value = ''
+  added.value = false
+  frontTransform.value = defaultPhotoTransform()
+  await frontUpload.acceptFile(file)
+}
+
+async function handleBackUpload(file: File) {
+  formError.value = ''
+  added.value = false
+  backTransform.value = defaultPhotoTransform()
+  await backUpload.acceptFile(file)
+}
+
+async function handleMonthUpload(monthIndex: number, file: File) {
+  formError.value = ''
+  added.value = false
+  const key = calendarMonthKey(selectedDesignId.value, monthIndex)
+  uploadingMonth.value = key
+  try {
+    if (!file.type.startsWith('image/')) {
+      formError.value = 'Please choose an image file.'
+      return
+    }
+    const uploaded = await uploadPersonalisePhoto(file)
+    monthPhotos.value = { ...monthPhotos.value, [key]: uploaded.url }
+    monthPaths.value = { ...monthPaths.value, [key]: uploaded.path }
+  } catch (e) {
+    formError.value = e instanceof Error ? e.message : 'Upload failed.'
+  } finally {
+    uploadingMonth.value = null
   }
 }
 
-onBeforeUnmount(revokePhoto)
-
-function resetAdjustments() {
-  zoom.value = 1
-  posX.value = 50
-  posY.value = 50
+async function handleSlotUpload(frameIndex: number, slotIndex: number, file: File) {
+  formError.value = ''
+  added.value = false
+  const key = magnetStripSlotKey(frameIndex, slotIndex)
+  uploadingSlot.value = key
+  try {
+    if (!file.type.startsWith('image/')) {
+      formError.value = 'Please choose an image file.'
+      return
+    }
+    const uploaded = await uploadPersonalisePhoto(file)
+    stripSlotPhotos.value = { ...stripSlotPhotos.value, [key]: uploaded.url }
+    stripSlotPaths.value = { ...stripSlotPaths.value, [key]: uploaded.path }
+  } catch (e) {
+    formError.value = e instanceof Error ? e.message : 'Upload failed.'
+  } finally {
+    uploadingSlot.value = null
+  }
 }
 
-function clearPhoto() {
-  revokePhoto()
-  photoUrl.value = null
-  resetAdjustments()
-  uploadError.value = ''
+function handleSlotText(frameIndex: number, slotIndex: number, text: string) {
+  const key = magnetStripSlotKey(frameIndex, slotIndex)
+  stripSlotTexts.value = { ...stripSlotTexts.value, [key]: text }
   added.value = false
 }
 
-function acceptFile(file: File | undefined | null) {
-  uploadError.value = ''
-  added.value = false
-  if (!file) return
-  if (!file.type.startsWith('image/')) {
-    uploadError.value = 'Please choose a JPG, PNG, or WebP image.'
-    return
+function onCalendarDesign(design: { id: string; layout: 'desk' | 'wall' }) {
+  selectedDesignId.value = design.id
+  options.value = {
+    ...options.value,
+    calendarLayout: design.layout,
   }
-  if (file.size > 12 * 1024 * 1024) {
-    uploadError.value = 'Image must be under 12 MB.'
-    return
-  }
-  revokePhoto()
-  photoUrl.value = URL.createObjectURL(file)
-  resetAdjustments()
-}
-
-function onFileInput(e: Event) {
-  const input = e.target as HTMLInputElement
-  acceptFile(input.files?.[0])
-  input.value = ''
-}
-
-function onDrop(e: DragEvent) {
-  dragOver.value = false
-  acceptFile(e.dataTransfer?.files?.[0])
 }
 
 async function addToCart() {
-  if (!photoUrl.value) {
-    uploadError.value = 'Upload a photo first to preview and add to cart.'
+  formError.value = ''
+  if (!canAdd.value) {
+    formError.value = 'Please upload your photo(s) before adding to cart.'
     return
   }
+  if (activeType.value === 'bookmark' && options.value.customText?.trim() && !bookmarkTextValid(options.value.customText)) {
+    formError.value = `Keep text to ${BOOKMARK_TEXT_MAX_WORDS} words or fewer.`
+    return
+  }
+
   adding.value = true
-  added.value = false
   try {
+    let photoUrl = frontUpload.previewUrl.value!
+    let photoPath = frontUpload.photoPath.value!
+    let price = effectivePrice.value
+    let name = product.value.label
+    const giftParts: string[] = []
+
+    if (activeType.value === 'magnet') {
+      const frame = magnetFrame.value
+      const fi = activeFrame.value
+      let firstPhotoUrl: string | null = null
+      let firstPhotoPath: string | null = null
+      const slotPaths: Record<string, string> = {}
+      const slotTexts: Record<string, string> = {}
+
+      frame.slots.forEach((slot, si) => {
+        const key = magnetStripSlotKey(fi, si)
+        if (slot.type === 'photo') {
+          const path = stripSlotPaths.value[key]
+          const url = stripSlotPhotos.value[key]
+          if (path && url) {
+            slotPaths[slot.label] = path
+            if (!firstPhotoPath) {
+              firstPhotoPath = path
+              firstPhotoUrl = url
+            }
+          }
+        } else {
+          const text = stripSlotTexts.value[key]?.trim()
+          if (text) slotTexts[slot.label] = text
+        }
+      })
+
+      photoUrl = firstPhotoUrl!
+      photoPath = firstPhotoPath!
+      price = frame.price
+      name = `Magnetic photo strip · ${frame.label}`
+      giftParts.push(`Frame: ${frame.id}`)
+      if (Object.keys(slotPaths).length) {
+        giftParts.push(`Strip photos: ${JSON.stringify(slotPaths)}`)
+      }
+      if (Object.keys(slotTexts).length) {
+        giftParts.push(`Strip text: ${JSON.stringify(slotTexts)}`)
+      }
+    }
+
+    if (activeType.value === 'calendar') {
+      const design = calendarDesign.value
+      const monthPathsPayload: Record<string, string> = {}
+      let firstPhotoUrl: string | null = null
+      let firstPhotoPath: string | null = null
+
+      CALENDAR_MONTHS.forEach((month, mi) => {
+        const key = calendarMonthKey(design.id, mi)
+        const path = monthPaths.value[key]
+        const url = monthPhotos.value[key]
+        if (path && url) {
+          monthPathsPayload[month] = path
+          if (!firstPhotoPath) {
+            firstPhotoPath = path
+            firstPhotoUrl = url
+          }
+        }
+      })
+
+      photoUrl = firstPhotoUrl!
+      photoPath = firstPhotoPath!
+      price = design.price
+      name = `Custom calendar · ${design.label}`
+      giftParts.push(`Design: ${design.id}`)
+      giftParts.push(`Layout: ${design.layout}`)
+      giftParts.push(`Month photos: ${JSON.stringify(monthPathsPayload)}`)
+      options.value = {
+        ...options.value,
+        calendarLayout: design.layout,
+      }
+    }
+
+    if (activeType.value === 'bookmark' || activeType.value === 'card') {
+      giftParts.push(`Front colour ${frontColor.value}`)
+      giftParts.push(`Back colour ${accentColor.value}`)
+    }
+    if (backUpload.photoPath.value) {
+      giftParts.push(`Back photo: ${backUpload.photoPath.value}`)
+      giftParts.push(
+        `Back crop: z${backTransform.value.zoom} @ ${backTransform.value.posX},${backTransform.value.posY}`,
+      )
+    }
+
     cart.addCustomProduct({
       type: activeType.value,
-      name: activeProduct.value.label,
-      unitPrice: activeProduct.value.price,
-      photoUrl: photoUrl.value,
-      zoom: zoom.value,
-      posX: posX.value,
-      posY: posY.value,
+      name,
+      unitPrice: price,
+      photoUrl,
+      photoPath,
+      zoom: frontTransform.value.zoom,
+      posX: frontTransform.value.posX,
+      posY: frontTransform.value.posY,
+      options: {
+        ...options.value,
+        giftNote: [options.value.giftNote, ...giftParts].filter(Boolean).join('\n'),
+      },
+      quantity: options.value.quantity,
     })
     added.value = true
   } finally {
@@ -135,570 +331,219 @@ async function addToCart() {
 </script>
 
 <template>
-  <div class="studio tm-section tm-animate-in">
-    <div class="tm-container">
-      <header class="studio__head">
-        <p class="studio__eyebrow">
-          <Sparkles :size="16" aria-hidden="true" />
-          Personalise studio
-        </p>
-        <h1 class="studio__title">Design your custom piece</h1>
-        <p class="studio__lead">
-          Upload once, preview on bookmarks, calendars, cards, and fridge magnets — the same flow
-          used by photo-gift shops like Snapfish and Vistaprint.
+  <div class="ps-page">
+    <div class="tm-container ps-page__inner">
+      <header class="ps-page__head">
+        <h1 class="ps-page__title">Create your own</h1>
+        <p class="ps-page__lead">
+          Pick a product, upload your photos, and add to cart — bookmarks, magnets, cards &amp;
+          calendars.
         </p>
       </header>
 
-      <div class="studio__layout">
-        <aside class="studio__panel studio__panel--tools">
-          <div class="studio__types" role="tablist" aria-label="Product type">
-            <button
-              v-for="p in PERSONALISE_PRODUCTS"
-              :key="p.id"
-              type="button"
-              role="tab"
-              class="studio__type"
-              :class="{ 'studio__type--active': activeType === p.id }"
-              :aria-selected="activeType === p.id"
-              @click="activeType = p.id"
-            >
-              <img :src="p.sampleImage" alt="" class="studio__type-img" loading="lazy" />
-              <span class="studio__type-label">{{ p.shortLabel }}</span>
-            </button>
-          </div>
+      <div class="ps-page__layout">
+        <PersonaliseTypeNav :active="activeType" @select="activeType = $event" />
 
-          <div
-            class="studio__drop"
-            :class="{ 'studio__drop--over': dragOver, 'studio__drop--filled': hasPhoto }"
-            @dragover.prevent="dragOver = true"
-            @dragleave.prevent="dragOver = false"
-            @drop.prevent="onDrop"
-          >
-            <input
-              id="photo-upload"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-              class="studio__file"
-              @change="onFileInput"
-            />
-            <label v-if="!hasPhoto" for="photo-upload" class="studio__drop-inner">
-              <span class="studio__drop-icon">
-                <Upload :size="26" :stroke-width="2" aria-hidden="true" />
+        <div class="ps-page__workspace">
+          <PersonaliseFrontBackStudio
+            v-if="activeType === 'bookmark' || activeType === 'card'"
+            :mode="activeType"
+            :front-photo-url="frontPreview"
+            :back-photo-url="backPreview"
+            :accent-color="accentColor"
+            :front-color="frontColor"
+            :front-transform="frontTransform"
+            :back-transform="backTransform"
+            :front-uploading="frontUploading"
+            :back-uploading="backUploading"
+            @update:accent-color="accentColor = $event"
+            @update:front-color="frontColor = $event"
+            @update:front-transform="frontTransform = $event"
+            @update:back-transform="backTransform = $event"
+            @front-upload="handleFrontUpload"
+            @back-upload="handleBackUpload"
+          />
+
+          <PersonaliseMagnetStudio
+            v-else-if="activeType === 'magnet'"
+            :active-frame="activeFrame"
+            :slot-photos="stripSlotPhotos"
+            :slot-texts="stripSlotTexts"
+            :uploading-slot="uploadingSlot"
+            @update:active-frame="activeFrame = $event"
+            @slot-upload="handleSlotUpload"
+            @update:slot-text="handleSlotText"
+          />
+
+          <PersonaliseCalendarStudio
+            v-else
+            :selected-design-id="selectedDesignId"
+            :month-photos="monthPhotos"
+            :uploading-month="uploadingMonth"
+            @update:selected-design-id="selectedDesignId = $event"
+            @select-design="onCalendarDesign"
+            @month-upload="handleMonthUpload"
+          />
+        </div>
+
+        <PersonaliseOrderPanel
+          :product="product"
+          :price="effectivePrice"
+          :compare-at="effectiveCompareAt"
+          :quantity="options.quantity"
+          :can-add="canAdd"
+          :adding="adding"
+          :added="added"
+          :error="uploadErrorMsg"
+          :details="orderDetails"
+          @update:quantity="options = { ...options, quantity: $event }"
+          @add="addToCart"
+          @open-cart="cartUi.open()"
+        >
+          <template v-if="activeType === 'bookmark'">
+            <label class="ps-field">
+              <span class="ps-field__label">Your text <small>optional · max {{ BOOKMARK_TEXT_MAX_WORDS }} words</small></span>
+              <textarea
+                v-model="options.customText"
+                class="ps-field__input"
+                rows="2"
+                placeholder="Name or short quote…"
+              />
+              <span class="ps-field__hint" :class="{ 'ps-field__hint--over': textOverLimit }">
+                {{ wordCount }} / {{ BOOKMARK_TEXT_MAX_WORDS }} words
               </span>
-              <span class="studio__drop-title">Drop your photo here</span>
-              <span class="studio__drop-hint">or click to browse · JPG, PNG, WebP up to 12 MB</span>
             </label>
-            <div v-else class="studio__thumb-wrap">
-              <img :src="photoUrl || ''" alt="Uploaded preview" class="studio__thumb" />
-              <div class="studio__thumb-actions">
-                <label for="photo-upload" class="studio__ghost-btn">
-                  <ImagePlus :size="16" aria-hidden="true" />
-                  Replace
-                </label>
-                <button type="button" class="studio__ghost-btn" @click="clearPhoto">Remove</button>
-              </div>
-            </div>
-          </div>
+            <p class="ps-field__note">{{ BOOKMARK_IMAGE_HINT }}</p>
+          </template>
 
-          <p v-if="uploadError" class="studio__error" role="alert">{{ uploadError }}</p>
+          <template v-else-if="activeType === 'card'">
+            <label class="ps-field">
+              <span class="ps-field__label">Message inside</span>
+              <textarea v-model="options.insideMessage" class="ps-field__input" rows="3" placeholder="Your message…" />
+            </label>
+            <label class="ps-field">
+              <span class="ps-field__label">Recipient name</span>
+              <input v-model="options.recipientName" type="text" class="ps-field__input" placeholder="Printed inside" />
+            </label>
+          </template>
 
-          <div v-if="hasPhoto" class="studio__adjust">
-            <p class="studio__adjust-title">
-              <ZoomIn :size="15" aria-hidden="true" />
-              Fine-tune placement
+          <template v-else-if="activeType === 'magnet'">
+            <p class="ps-field__note">{{ magnetFrame.hint }}</p>
+          </template>
+
+          <template v-else>
+            <p class="ps-field__note">
+              {{ calendarDesign.layout === 'desk' ? 'Desk' : 'Wall' }} calendar ·
+              {{ calendarDesign.label }} · upload one photo per month (all 12 required).
             </p>
-            <label class="studio__slider">
-              <span>Zoom</span>
-              <input v-model.number="zoom" type="range" min="1" max="2.5" step="0.05" />
-            </label>
-            <label class="studio__slider">
-              <span>Horizontal</span>
-              <input v-model.number="posX" type="range" min="0" max="100" step="1" />
-            </label>
-            <label class="studio__slider">
-              <span>Vertical</span>
-              <input v-model.number="posY" type="range" min="0" max="100" step="1" />
-            </label>
-            <button type="button" class="studio__reset" @click="resetAdjustments">
-              <RotateCcw :size="14" aria-hidden="true" />
-              Reset crop
-            </button>
-          </div>
+          </template>
 
-          <div class="studio__buy">
-            <p class="studio__price">
-              <strong>{{ fmt(activeProduct.price) }}</strong>
-              <span v-if="activeProduct.compareAt > activeProduct.price" class="studio__was">{{
-                fmt(activeProduct.compareAt)
-              }}</span>
-            </p>
-            <button
-              type="button"
-              class="studio__cta"
-              :disabled="!hasPhoto || adding"
-              @click="addToCart"
-            >
-              <Loader2 v-if="adding" :size="18" class="studio__spin" aria-hidden="true" />
-              <ShoppingBag v-else :size="18" :stroke-width="2.25" aria-hidden="true" />
-              {{ adding ? 'Adding…' : 'Add to cart' }}
-            </button>
-            <p v-if="added" class="studio__success">
-              Added!
-              <button type="button" class="studio__view-cart" @click="cartUi.open()">View cart</button>
-            </p>
-          </div>
-        </aside>
-
-        <section class="studio__panel studio__panel--preview" aria-live="polite">
-          <h2 class="studio__preview-title">Live preview — {{ activeProduct.shortLabel }}</h2>
-          <div class="studio__hero-preview">
-            <CustomProductPreview
-              :type="activeType"
-              :photo-url="photoUrl"
-              :zoom="zoom"
-              :pos-x="posX"
-              :pos-y="posY"
+          <label class="ps-field">
+            <span class="ps-field__label">Email for design questions <small>optional</small></span>
+            <input
+              v-model="options.contactEmail"
+              type="email"
+              class="ps-field__input"
+              placeholder="you@email.com"
+              autocomplete="email"
             />
-          </div>
+          </label>
 
-          <div class="studio__all-previews">
-            <h3 class="studio__all-title">See it on every product</h3>
-            <div class="studio__all-grid">
-              <button
-                v-for="p in PERSONALISE_PRODUCTS"
-                :key="p.id"
-                type="button"
-                class="studio__mini"
-                :class="{ 'studio__mini--active': activeType === p.id }"
-                @click="activeType = p.id"
-              >
-                <CustomProductPreview
-                  :type="p.id"
-                  :photo-url="photoUrl"
-                  :zoom="zoom"
-                  :pos-x="posX"
-                  :pos-y="posY"
-                  compact
-                />
-                <span class="studio__mini-label">{{ p.shortLabel }}</span>
-              </button>
-            </div>
-          </div>
-        </section>
+          <p v-if="activeType === 'bookmark'" class="ps-policy">{{ BOOKMARK_POLICY_NOTE }}</p>
+        </PersonaliseOrderPanel>
       </div>
-
-      <p class="studio__footer-note">
-        High-resolution print files are prepared after checkout. Need a set?
-        <RouterLink to="/create-your-set">Build a mixed set</RouterLink>
-        instead.
-      </p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.studio {
-  padding-top: 1.5rem;
-  padding-bottom: 4rem;
+.ps-page {
+  padding: 1rem 0 2.5rem;
+  background: var(--color-page);
 }
 
-.studio__head {
-  max-width: 40rem;
-  margin-bottom: 2rem;
+.ps-page__head {
+  margin-bottom: 0.85rem;
 }
 
-.studio__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-
-.studio__title {
-  margin: 0 0 0.5rem;
+.ps-page__title {
+  margin: 0 0 0.2rem;
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 4vw, 2.35rem);
-  font-weight: 500;
-  line-height: 1.15;
+  font-size: clamp(1.45rem, 2.5vw, 1.85rem);
 }
 
-.studio__lead {
+.ps-page__lead {
   margin: 0;
+  max-width: 36rem;
+  font-size: 0.88rem;
   color: var(--color-ink-muted);
-  line-height: 1.55;
-  font-size: 0.98rem;
+  line-height: 1.45;
 }
 
-.studio__layout {
+.ps-page__layout {
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  grid-template-columns: 8.25rem minmax(0, 1fr) 17.5rem;
+  gap: 0.85rem;
   align-items: start;
 }
 
-@media (max-width: 960px) {
-  .studio__layout {
+@media (max-width: 1100px) {
+  .ps-page__layout {
     grid-template-columns: 1fr;
   }
 }
 
-.studio__panel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-raised, #fff);
-  box-shadow: var(--shadow-card);
+.ps-page__workspace {
+  min-width: 0;
 }
 
-.studio__panel--tools {
-  padding: 1.1rem;
+.ps-field {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.studio__types {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
-}
-
-.studio__type {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem;
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.studio__type:hover {
-  border-color: var(--color-border-strong);
-}
-
-.studio__type--active {
-  border-color: var(--color-accent);
-  background: rgba(45, 92, 82, 0.06);
-}
-
-.studio__type-img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.studio__type-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-align: center;
-  line-height: 1.2;
-  color: var(--color-ink);
-}
-
-.studio__file {
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.studio__drop {
-  position: relative;
-  border: 2px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.studio__drop--over {
-  border-color: var(--color-accent);
-  background: rgba(45, 92, 82, 0.05);
-}
-
-.studio__drop--filled {
-  border-style: solid;
-}
-
-.studio__drop-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 0.35rem;
-  padding: 1.75rem 1rem;
-  cursor: pointer;
-  text-align: center;
+  margin-bottom: 0.85rem;
 }
 
-.studio__drop-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 999px;
-  background: rgba(45, 92, 82, 0.1);
-  color: var(--color-accent);
-  margin-bottom: 0.25rem;
-}
-
-.studio__drop-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.studio__drop-hint {
-  font-size: 0.78rem;
-  color: var(--color-ink-muted);
-}
-
-.studio__thumb-wrap {
-  padding: 0.65rem;
-}
-
-.studio__thumb {
-  width: 100%;
-  max-height: 10rem;
-  object-fit: contain;
-  border-radius: var(--radius-sm);
-  display: block;
-  margin: 0 auto;
-}
-
-.studio__thumb-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 0.6rem;
-}
-
-.studio__ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: transparent;
-  font-size: 0.78rem;
-  font-weight: 650;
-  cursor: pointer;
-  color: var(--color-ink);
-}
-
-.studio__ghost-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.studio__error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-highlight);
-  font-weight: 600;
-}
-
-.studio__adjust {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.studio__adjust-title {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
+.ps-field__label {
   font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--color-ink);
-}
-
-.studio__slider {
-  display: grid;
-  grid-template-columns: 5.5rem 1fr;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-  color: var(--color-ink-muted);
-}
-
-.studio__slider input {
-  width: 100%;
-  accent-color: var(--color-accent);
-}
-
-.studio__reset {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  align-self: flex-start;
-  padding: 0.3rem 0.65rem;
-  border: none;
-  background: transparent;
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: var(--color-accent);
-  cursor: pointer;
-}
-
-.studio__buy {
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.studio__price {
-  margin: 0 0 0.65rem;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.studio__price strong {
-  font-size: 1.35rem;
-  font-family: var(--font-display);
-}
-
-.studio__was {
-  font-size: 0.88rem;
-  color: var(--color-ink-muted);
-  text-decoration: line-through;
-}
-
-.studio__cta {
-  display: inline-flex;
-  width: 100%;
-  min-height: var(--tap-min);
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--color-accent);
-  color: #fff !important;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.studio__cta:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.studio__cta:not(:disabled):hover {
-  opacity: 0.92;
-}
-
-.studio__spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.studio__success {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
-  color: var(--color-accent);
   font-weight: 600;
 }
 
-.studio__view-cart {
-  margin-left: 0.35rem;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-weight: 700;
-  color: var(--color-accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
+.ps-field__label small {
+  font-weight: 500;
+  color: var(--color-ink-faint);
 }
 
-.studio__panel--preview {
-  padding: 1.25rem;
-}
-
-.studio__preview-title {
-  margin: 0 0 1rem;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--color-ink-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.studio__hero-preview {
-  margin-bottom: 1.5rem;
-}
-
-.studio__all-title {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.studio__all-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.65rem;
-}
-
-@media (max-width: 720px) {
-  .studio__all-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.studio__mini {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.45rem;
-  border: 2px solid var(--color-border);
+.ps-field__input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s ease;
+  font: inherit;
+  background: var(--color-page);
 }
 
-.studio__mini:hover,
-.studio__mini--active {
-  border-color: var(--color-accent);
+.ps-field__hint {
+  font-size: 0.75rem;
+  color: var(--color-ink-faint);
 }
 
-.studio__mini-label {
-  font-size: 0.72rem;
+.ps-field__hint--over {
+  color: var(--color-sale);
   font-weight: 700;
-  text-align: center;
 }
 
-.studio__footer-note {
-  margin: 2rem 0 0;
-  text-align: center;
-  font-size: 0.88rem;
+.ps-field__note {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
   color: var(--color-ink-muted);
+}
+
+.ps-policy {
+  margin: 0.5rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-ink-faint);
 }
 </style>

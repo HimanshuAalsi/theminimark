@@ -148,6 +148,11 @@ function tm_razorpay_http(string $method, string $path, ?array $body = null): ar
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body ?? [], JSON_THROW_ON_ERROR));
+    } elseif ($method !== 'GET') {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if ($body !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_THROW_ON_ERROR));
+        }
     }
 
     $raw = curl_exec($ch);
@@ -184,9 +189,12 @@ function tm_payment_razorpay_start_checkout(
     string $customerEmail,
     ?string $customerName,
     array $lines,
-    ?string $notes
+    ?string $notes,
+    ?array $freeGift = null,
+    ?string $couponCode = null,
+    ?array $shipping = null
 ): array {
-    $created = tm_order_create($pdo, $customerEmail, $customerName, 'INR', $lines, $notes);
+    $created = tm_order_create($pdo, $customerEmail, $customerName, 'INR', $lines, $notes, $freeGift, $couponCode, $shipping);
     if (!$created['ok'] || !isset($created['orderId'])) {
         return $created;
     }
@@ -226,6 +234,7 @@ function tm_payment_razorpay_start_checkout(
         'customer' => [
             'name' => $customerName ?? '',
             'email' => $customerEmail,
+            'contact' => $shipping !== null ? (string) ($shipping['phone'] ?? '') : '',
         ],
         'message' => 'Checkout ready',
     ];
@@ -269,4 +278,36 @@ function tm_payment_razorpay_verify(
     }
 
     return ['ok' => true, 'orderId' => $orderId, 'message' => 'Payment successful'];
+}
+
+/**
+ * @return array{ok: bool, refundId?: string, message: string}
+ */
+function tm_razorpay_refund_payment(string $paymentId, ?int $amountPaise = null): array
+{
+    $s = tm_razorpay_settings();
+    if (!$s['enabled'] || !$s['secret_ok']) {
+        return ['ok' => false, 'message' => 'Razorpay is not configured'];
+    }
+    $paymentId = trim($paymentId);
+    if ($paymentId === '') {
+        return ['ok' => false, 'message' => 'Payment ID required for refund'];
+    }
+
+    $payload = [];
+    if ($amountPaise !== null && $amountPaise > 0) {
+        $payload['amount'] = $amountPaise;
+    }
+
+    $res = tm_razorpay_http('POST', '/payments/' . rawurlencode($paymentId) . '/refund', $payload);
+    if (!$res['ok']) {
+        return ['ok' => false, 'message' => $res['message']];
+    }
+    $refundId = isset($res['body']['id']) ? (string) $res['body']['id'] : '';
+
+    return [
+        'ok' => true,
+        'refundId' => $refundId !== '' ? $refundId : null,
+        'message' => 'Refund initiated',
+    ];
 }

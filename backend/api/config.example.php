@@ -25,6 +25,16 @@ return [
     'api_base_path' => '',
     /** CORS: use your Vue dev origin or production domain. * is fine for read-only public APIs. */
     'cors_origin' => '*',
+    /** Optional: full site URL for absolute upload URLs in admin (e.g. https://theminimark.com). */
+    'public_base_url' => '',
+    /**
+     * Admin image uploads are converted to WebP automatically (JPEG/PNG/GIF → WebP).
+     * quality 92 = high visual fidelity; max_dimension caps very large camera photos only.
+     */
+    'uploads' => [
+        'webp_quality' => 92,
+        'max_dimension' => 2560,
+    ],
     /**
      * Auth (optional keys use defaults).
      * expose_reset_token: when true, POST /v1/auth/forgot-password includes debugResetToken in JSON for local testing only.
@@ -44,5 +54,13 @@ return [
         'key_id' => '',
         'key_secret' => '',
         'company_name' => 'The Minimark',
+    ],
+    /**
+     * Order emails via PHP mail(). Enable on Hostinger once SPF/DKIM is set for your domain.
+     */
+    'mail' => [
+        'enabled' => false,
+        'from_email' => 'orders@theminimark.com',
+        'from_name' => 'The Minimark',
     ],
 ];

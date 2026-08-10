@@ -1,5 +1,4 @@
 import type { RouteLocationRaw } from 'vue-router'
-import { SHOP_CATEGORIES } from '@/data/siteContent'
 
 export interface NavLink {
   label: string
@@ -14,27 +13,28 @@ export interface NavItem {
   children?: NavLink[]
 }
 
+/** Primary header navigation — per site brief */
 export const HEADER_NAV: NavItem[] = [
   {
-    id: 'bookmarks',
-    label: 'Bookmarks',
+    id: 'shop',
+    label: 'Shop',
     children: [
       {
-        label: 'Classic',
-        description: 'Paper & clip bookmarks',
-        to: { path: '/shop', query: { category: 'bookmarks', type: 'classic' } },
+        label: 'Bookmarks',
+        description: 'Magnetic & classic clips',
+        to: '/shop/bookmarks',
       },
       {
-        label: 'Magnetic',
-        description: 'Fold-over magnetic clips',
-        to: { path: '/shop', query: { category: 'bookmarks', type: 'magnetic' } },
+        label: 'Fridge Magnets',
+        description: 'Photo & quote magnets',
+        to: '/shop/magnets',
+      },
+      {
+        label: 'All Products',
+        description: 'Browse the full catalogue',
+        to: '/shop',
       },
     ],
-  },
-  {
-    id: 'fridge-magnets',
-    label: 'Fridge Magnets',
-    to: { path: '/shop', query: { category: 'magnets' } },
   },
   {
     id: 'create-set',
@@ -42,19 +42,8 @@ export const HEADER_NAV: NavItem[] = [
     to: '/create-your-set',
   },
   {
-    id: 'shop',
-    label: 'Shop',
-    children: [
-      {
-        label: 'All categories',
-        description: 'Browse everything',
-        to: '/shop',
-      },
-      ...SHOP_CATEGORIES.filter((c) => c.id !== 'all').map((c) => ({
-      label: c.id === 'magnets' ? 'Fridge Magnets' : c.label,
-      description: c.blurb,
-      to: { path: '/shop', query: { category: c.id } },
-      })),
-    ],
+    id: 'blog',
+    label: 'Blog',
+    to: '/blog',
   },
 ]

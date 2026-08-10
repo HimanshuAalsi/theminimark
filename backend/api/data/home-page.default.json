@@ -1,0 +1,112 @@
+{
+  "announcement": "Free delivery above ₹499 · Use code MINIFIRST10 for 10% off your first order · Returns within 24 hrs with unboxing video",
+  "logoImage": "",
+  "heroSlides": [
+    {
+      "eyebrow": "New season",
+      "tabLabel": "Bookmarks",
+      "title": "Magnetic clips that stay on every page",
+      "text": "Fold-over bookmarks, classic styles, and custom photo pieces — made for readers who never lose their place.",
+      "image": "/products/magnetic-bookmarks.jpeg",
+      "ctaPrimary": { "label": "Shop now", "to": "/shop/bookmarks" },
+      "ctaSecondary": { "label": "Explore More", "to": "/shop" }
+    },
+    {
+      "eyebrow": "Greeting cards",
+      "tabLabel": "Cards",
+      "title": "Say it beautifully for every occasion",
+      "text": "Birthday, thank you, and love cards with rich papers — ready to post or pair with a small gift.",
+      "image": "/products/birthday-cards.jpeg",
+      "ctaPrimary": { "label": "Shop now", "to": "/shop/cards" },
+      "ctaSecondary": { "label": "Explore More", "to": "/shop" }
+    },
+    {
+      "eyebrow": "Desk & wall",
+      "tabLabel": "Calendars",
+      "title": "Mark the year with calm, clear layouts",
+      "text": "Desk and wall calendars that sit neatly beside your favourite bookmarks and stationery.",
+      "image": "/products/calendars.jpeg",
+      "ctaPrimary": { "label": "Shop now", "to": "/shop/calendars" },
+      "ctaSecondary": { "label": "Explore More", "to": "/shop" }
+    },
+    {
+      "eyebrow": "Fridge & desk",
+      "tabLabel": "Fridge Magnets",
+      "title": "Photo magnets for your fridge & locker",
+      "text": "Glossy custom photo magnets and quote pieces — gift-ready picks that stick around.",
+      "image": "/products/fridge-magnets.jpeg",
+      "ctaPrimary": { "label": "Shop now", "to": "/shop/magnets" },
+      "ctaSecondary": { "label": "Explore More", "to": "/shop" }
+    }
+  ],
+  "categoryStrip": [
+    {
+      "title": "Bookmarks",
+      "blurb": "Magnetic & classic",
+      "href": "/shop/bookmarks",
+      "image": "/products/magnetic-bookmarks.jpeg"
+    },
+    {
+      "title": "Cards",
+      "blurb": "Birthday & thank you",
+      "href": "/shop/cards",
+      "image": "/products/birthday-cards.jpeg"
+    },
+    {
+      "title": "Fridge Magnets",
+      "blurb": "Photo & quote magnets",
+      "href": "/shop/magnets",
+      "image": "/products/fridge-magnets.jpeg"
+    },
+    {
+      "title": "Calendars",
+      "blurb": "Desk & wall",
+      "href": "/shop/calendars",
+      "image": "/products/calendars.jpeg"
+    },
+    {
+      "title": "Hampers",
+      "blurb": "Curated gift boxes",
+      "href": "/shop/hampers",
+      "image": "/products/hampers.jpeg"
+    },
+    {
+      "title": "Gift combos",
+      "blurb": "Ready-made sets",
+      "href": "/shop",
+      "image": "/products/mini-hamper.jpeg"
+    }
+  ],
+  "personaliseCards": [
+    {
+      "id": "bookmark",
+      "shortLabel": "Custom bookmark",
+      "blurb": "Upload your photo and optional text — we print it on a magnetic bookmark.",
+      "image": "/products/magnetic-bookmarks.jpeg"
+    }
+  ],
+  "trustItems": [
+    { "title": "Free Delivery", "text": "Delivery is free above ₹499 on every order.", "icon": "truck" },
+    { "title": "Flexible Payment", "text": "Pay with secure & easy flexible payment options.", "icon": "payment" },
+    { "title": "10% off your first order", "text": "Use code MINIFIRST10 for 10% off on your first order.", "icon": "offer" },
+    { "title": "Return & Refund", "text": "Return accepted within 24 hours with an unboxing video.", "icon": "return" }
+  ],
+  "howItWorksIntro": {
+    "eyebrow": "How it works",
+    "title": "Shop in three simple steps",
+    "description": "The same flow shoppers expect from modern stationery stores: browse, cart, checkout — without clutter."
+  },
+  "howItWorksSteps": [
+    { "step": "1", "title": "Browse by category", "text": "Bookmarks, cards, calendars, magnets — filter the shop to match what you need.", "ctaLabel": "Browse shop", "ctaTo": "/shop" },
+    { "step": "2", "title": "Add to cart", "text": "Clear prices, sale items marked, cart saves on your device while you shop.", "ctaLabel": "View cart", "ctaTo": "/cart" },
+    { "step": "3", "title": "Checkout & enjoy", "text": "Complete your order securely. We pack with care and ship as fast as we can.", "ctaLabel": "Go to checkout", "ctaTo": "/checkout" }
+  ],
+  "newsletter": {
+    "eyebrow": "Newsletter",
+    "title": "Get offers & new arrivals",
+    "description": "Occasional emails — no spam. Unsubscribe anytime.",
+    "placeholder": "Your email",
+    "buttonLabel": "Subscribe",
+    "finePrint": "We respect your inbox. No third-party ads."
+  }
+}

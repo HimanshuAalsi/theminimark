@@ -19,6 +19,6 @@ Optional: hide the Vue app assets while maintaining — visitors only load this 
 
 Edit `index.html`:
 
-- **Email:** change `hello@theminimark.com` in the contact link.
+- **Email:** change `support@theminimark.com` in the contact link.
 - **Copy:** update the headline and lead paragraph.
 - **Logo path:** default is `/main-logo.webp` at site root.

@@ -3,23 +3,34 @@ import { ArrowRight, Sparkles, Upload } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { formatCurrency } from '@/lib/currency'
-import type { PersonaliseProduct } from '@/data/personalise'
+import { bookmarkPersonaliseCard, type PersonaliseProduct } from '@/data/personalise'
 
 const props = withDefaults(
   defineProps<{
-    promo: PersonaliseProduct
+    promo?: PersonaliseProduct
+    category?: string
     /** Vertical layout for sticky shop sidebar */
     sidebar?: boolean
   }>(),
-  { sidebar: false }
+  { sidebar: false },
 )
+
+const promo = computed(() => props.promo ?? bookmarkPersonaliseCard())
 
 const fmt = formatCurrency
 
-const studioLink = computed(() => ({
-  path: '/personalise',
-  query: { type: props.promo.id },
-}))
+const studioLink = computed(() => {
+  const type = promo.value.id
+  return { path: '/personalise', query: type !== 'bookmark' ? { type } : {} }
+})
+
+const ctaLabel = computed(() => {
+  if (promo.value.id === 'bookmark') return 'Design your bookmark'
+  if (promo.value.id === 'card') return 'Design your card'
+  if (promo.value.id === 'magnet') return 'Design your magnet'
+  if (promo.value.id === 'calendar') return 'Design your calendar'
+  return 'Start customizing'
+})
 </script>
 
 <template>
@@ -32,7 +43,7 @@ const studioLink = computed(() => ({
       <img :src="promo.sampleImage" :alt="promo.label" class="shop-promo__img" loading="lazy" />
       <span class="shop-promo__badge">
         <Sparkles :size="13" aria-hidden="true" />
-        Personalise
+        Custom
       </span>
     </div>
 
@@ -42,16 +53,16 @@ const studioLink = computed(() => ({
       <p class="shop-promo__text">{{ promo.blurb }}</p>
       <p class="shop-promo__steps">
         <Upload :size="14" aria-hidden="true" />
-        Upload your photo, preview on all four products, then add to cart.
+        Upload your photo — preview updates live, then add to cart.
       </p>
       <p class="shop-promo__price">
-        From <strong>{{ fmt(promo.price) }}</strong>
+        <strong>{{ fmt(promo.price) }}</strong>
         <span v-if="promo.compareAt > promo.price" class="shop-promo__was">{{
           fmt(promo.compareAt)
         }}</span>
       </p>
       <RouterLink :to="studioLink" class="shop-promo__cta">
-        Open personalise studio
+        {{ ctaLabel }}
         <ArrowRight :size="17" :stroke-width="2.25" aria-hidden="true" />
       </RouterLink>
     </div>

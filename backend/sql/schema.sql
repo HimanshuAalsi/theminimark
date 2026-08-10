@@ -48,10 +48,12 @@ CREATE TABLE users (
   email VARCHAR(320) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255) NOT NULL DEFAULT '',
+  role VARCHAR(20) NOT NULL DEFAULT 'customer',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_users_email (email)
+  UNIQUE KEY uq_users_email (email),
+  KEY idx_users_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE user_sessions (
@@ -98,10 +100,19 @@ CREATE TABLE orders (
   paid_at DATETIME NULL,
   customer_email VARCHAR(320) NOT NULL,
   customer_name VARCHAR(255) NULL,
+  shipping_phone VARCHAR(32) NULL,
+  shipping_address TEXT NULL,
+  shipping_landmark VARCHAR(255) NULL,
+  shipping_city VARCHAR(128) NULL,
+  shipping_state VARCHAR(128) NULL,
+  shipping_pincode VARCHAR(10) NULL,
   currency CHAR(3) NOT NULL DEFAULT 'USD',
   subtotal DECIMAL(12, 2) NOT NULL,
+  items_subtotal DECIMAL(12, 2) NULL,
   notes TEXT NULL,
+  admin_notes TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_orders_razorpay_order (razorpay_order_id),
   KEY idx_orders_status (status),
